@@ -6,6 +6,8 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Text;
 using UnityEngine;
+using TMPro;
+using UnityEngine.UI;
 using System.Globalization;
 
 public class player : MonoBehaviour
@@ -14,8 +16,12 @@ public class player : MonoBehaviour
     static int NUMBER_OF_DEVICES = 3;
     static int DATA_POINTS = 4;
 
+    public TextMeshProUGUI text_stats;
+    public TextMeshProUGUI debug_stats;
+
     public Transform groundCheckTransform;
 
+    public GameObject bone_neck_center;
     public GameObject bone_upper_right;
     public GameObject bone_lower_right;
     public GameObject bone_hand_right;
@@ -30,11 +36,13 @@ public class player : MonoBehaviour
     Rigidbody mainPlayer;
 
     public const int port = 9022;
+    public const string my_ip = "10.42.0.1";
     UdpClient client;
     Thread networkThread;
 
     // COrrects the quaternions base on the MPU direction
-    public Quaternion quaternion_manipulator(Quaternion incoming_quaternion){
+    public Quaternion quaternion_manipulator(Quaternion incoming_quaternion)
+    {
         Quaternion temp;
         temp.w = incoming_quaternion.w;
         temp.x = incoming_quaternion.y;
@@ -44,8 +52,9 @@ public class player : MonoBehaviour
         return temp;
     }
 
-    public float[] quaternion_to_array(Quaternion incoming_quaternion){
-        float[] outer = new float [4];
+    public float[] quaternion_to_array(Quaternion incoming_quaternion)
+    {
+        float[] outer = new float[4];
         outer[0] = incoming_quaternion.w;
         outer[1] = incoming_quaternion.x;
         outer[2] = incoming_quaternion.y;
@@ -53,11 +62,21 @@ public class player : MonoBehaviour
         return outer;
     }
 
-    public void t_pose(){
+    public string float_array_to_string(float[] incoming_floats, int l)
+    {
+        string temp_string = "";
+
+        return temp_string;
+    }
+
+    public void t_pose()
+    {
         // Recenters according to T-Pose
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++){
-            for (int j = 0; j < DATA_POINTS; j++){
-                base_values[i,j] = 0 - new_values[i,j];
+        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
+        {
+            for (int j = 0; j < DATA_POINTS; j++)
+            {
+                base_values[i, j] = 0 - new_values[i, j];
             }
         }
     }
@@ -65,6 +84,7 @@ public class player : MonoBehaviour
     void Start()
     {
         mainPlayer = GetComponent<Rigidbody>();
+
         // All game objects to be assigned in the properties of the model.
 
         client = new UdpClient();
@@ -73,19 +93,23 @@ public class player : MonoBehaviour
 
         // Collect T-Pose base values
         float[] data = new float[4];
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++){
-            if (i == 0){
+        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
+        {
+            if (i == 0)
+            {
                 data = quaternion_to_array(bone_upper_right.transform.rotation);
             }
-            if (i == 1){
+            if (i == 1)
+            {
                 data = quaternion_to_array(bone_lower_right.transform.rotation);
             }
-            if (i == 2){
+            if (i == 2)
+            {
                 data = quaternion_to_array(bone_hand_right.transform.rotation);
             }
-            for (int j = 0; j < DATA_POINTS; j++){
-                base_values[i,j] = data[j];
-                Debug.Log(data[j]);
+            for (int j = 0; j < DATA_POINTS; j++)
+            {
+                base_values[i, j] = data[j];
             }
         }
 
@@ -97,28 +121,32 @@ public class player : MonoBehaviour
     }
 
     /** Returns a wrapped around float between -1 and 1.*/
-    public  float value_clamper(float incoming_number)
-	{
-		float max = 1f, min = -1f, val = incoming_number;
-		if (incoming_number >= max){
-			float excess = incoming_number % 1;
-			val = -1 + excess;
-			
-		} else if (incoming_number <= min){
-			float excess = incoming_number % 1;
-			val = excess;
-		}		
+    public float value_clamper(float incoming_number)
+    {
+        float max = 1f, min = -1f, val = incoming_number;
+        if (incoming_number >= max)
+        {
+            float excess = incoming_number % 1;
+            val = -1 + excess;
+
+        }
+        else if (incoming_number <= min)
+        {
+            float excess = incoming_number % 1;
+            val = excess;
+        }
 
         return val;
-		
-	}
+
+    }
 
 
 
     void GetNetData()
     {
         // IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
-        IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
+        // IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
+        IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
         client = new UdpClient(me);
         client.Client.Blocking = false;
         client.Client.ReceiveTimeout = 100;
@@ -135,7 +163,7 @@ public class player : MonoBehaviour
 
                 // encode UTF8-coded bytes to text format
                 string text = Encoding.UTF8.GetString(data);
-                
+
                 string[] devices = text.Split(':');
                 float t;
 
@@ -161,19 +189,28 @@ public class player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.R)){
+        if (Input.GetKeyDown(KeyCode.R))
+        {
             // Print the rotation between forarm and bicep
 
-            Debug.Log( Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation));
+            Debug.Log(Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation));
         }
 
-        if (Input.GetKeyDown(KeyCode.T)){
+        if (Input.GetKeyDown(KeyCode.T))
+        {
             t_pose();
         }
 
-        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[0, 1] + new_values[0, 1]) , value_clamper(base_values[0, 2] + new_values[0, 2]) , value_clamper(base_values[0, 3] + new_values[0, 3])  , value_clamper(base_values[0, 0] + new_values[0, 0]) ));
-        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[1, 1] + new_values[1, 1]) , value_clamper(base_values[1, 2] + new_values[1, 2]) , value_clamper(base_values[1, 3] + new_values[1, 3])  , value_clamper(base_values[1, 0] + new_values[1, 0]) ));
-        bone_hand_right.transform.rotation  = quaternion_manipulator(new Quaternion(value_clamper(base_values[2, 1] + new_values[2, 1]) , value_clamper(base_values[2, 2] + new_values[2, 2]) , value_clamper(base_values[2, 3] + new_values[2, 3])  , value_clamper(base_values[2, 0] + new_values[2, 0]) ));
+        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[0, 1] + new_values[0, 1]), value_clamper(base_values[0, 2] + new_values[0, 2]), value_clamper(base_values[0, 3] + new_values[0, 3]), value_clamper(base_values[0, 0] + new_values[0, 0])));
+        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[1, 1] + new_values[1, 1]), value_clamper(base_values[1, 2] + new_values[1, 2]), value_clamper(base_values[1, 3] + new_values[1, 3]), value_clamper(base_values[1, 0] + new_values[1, 0])));
+        bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[2, 1] + new_values[2, 1]), value_clamper(base_values[2, 2] + new_values[2, 2]), value_clamper(base_values[2, 3] + new_values[2, 3]), value_clamper(base_values[2, 0] + new_values[2, 0])));
+
+        float a1 = Quaternion.Angle(bone_neck_center.transform.rotation, bone_lower_right.transform.rotation);
+        float a2 = Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation);
+        float a3 = Quaternion.Angle(bone_lower_right.transform.rotation, bone_hand_right.transform.rotation);
+
+        text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}\nWrist Rotation\t{2}", a1, a2, a3);
+        debug_stats.text = String.Format("Received: {0}\nTransform: {1}");
 
     }
 
@@ -197,15 +234,15 @@ public class player : MonoBehaviour
 
 
     void OnApplicationQuit()
-{
-    try
     {
-        client.Close();
-    }
-    catch(Exception e)
-    {
-        Debug.Log(e.Message);
-    }
+        try
+        {
+            client.Close();
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.Message);
+        }
     }
 
 }
