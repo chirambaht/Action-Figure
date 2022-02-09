@@ -33,6 +33,17 @@ public class player : MonoBehaviour
     UdpClient client;
     Thread networkThread;
 
+    // COrrects the quaternions base on the MPU direction
+    public Quaternion quaternion_manipulator(Quaternion incoming_quaternion){
+        Quaternion temp;
+        temp.w = incoming_quaternion.w;
+        temp.x = incoming_quaternion.y;
+        temp.y = incoming_quaternion.z;
+        temp.z = incoming_quaternion.x * -1;
+
+        return temp;
+    }
+
     public float[] quaternion_to_array(Quaternion incoming_quaternion){
         float[] outer = new float [4];
         outer[0] = incoming_quaternion.w;
@@ -106,7 +117,8 @@ public class player : MonoBehaviour
 
     void GetNetData()
     {
-        IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
+        // IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
+        IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
         client = new UdpClient(me);
         client.Client.Blocking = false;
         client.Client.ReceiveTimeout = 100;
@@ -150,16 +162,18 @@ public class player : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.R)){
-            // Reset
+            // Print the rotation between forarm and bicep
+
+            Debug.Log( Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation));
         }
 
         if (Input.GetKeyDown(KeyCode.T)){
             t_pose();
         }
 
-        bone_upper_right.transform.rotation = new Quaternion(value_clamper(base_values[0, 1] + new_values[0, 1]) , value_clamper(base_values[0, 2] + new_values[0, 2]) , value_clamper(base_values[0, 3] + new_values[0, 3])  , value_clamper(base_values[0, 0] + new_values[0, 0]) );
-        bone_lower_right.transform.rotation = new Quaternion(value_clamper(base_values[1, 1] + new_values[1, 1]) , value_clamper(base_values[1, 2] + new_values[1, 2]) , value_clamper(base_values[1, 3] + new_values[1, 3])  , value_clamper(base_values[1, 0] + new_values[1, 0]) );
-        bone_hand_right.transform.rotation  = new Quaternion(value_clamper(base_values[2, 1] + new_values[2, 1]) , value_clamper(base_values[2, 2] + new_values[2, 2]) , value_clamper(base_values[2, 3] + new_values[2, 3])  , value_clamper(base_values[2, 0] + new_values[2, 0]) );
+        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[0, 1] + new_values[0, 1]) , value_clamper(base_values[0, 2] + new_values[0, 2]) , value_clamper(base_values[0, 3] + new_values[0, 3])  , value_clamper(base_values[0, 0] + new_values[0, 0]) ));
+        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[1, 1] + new_values[1, 1]) , value_clamper(base_values[1, 2] + new_values[1, 2]) , value_clamper(base_values[1, 3] + new_values[1, 3])  , value_clamper(base_values[1, 0] + new_values[1, 0]) ));
+        bone_hand_right.transform.rotation  = quaternion_manipulator(new Quaternion(value_clamper(base_values[2, 1] + new_values[2, 1]) , value_clamper(base_values[2, 2] + new_values[2, 2]) , value_clamper(base_values[2, 3] + new_values[2, 3])  , value_clamper(base_values[2, 0] + new_values[2, 0]) ));
 
     }
 
