@@ -20,14 +20,17 @@ public class player : MonoBehaviour
     public TextMeshProUGUI debug_stats;
 
     public Transform groundCheckTransform;
+    public Renderer handy_dandy;
 
-    public GameObject bone_neck_center;
+    public GameObject bone_shoulder_right;
     public GameObject bone_upper_right;
     public GameObject bone_lower_right;
     public GameObject bone_hand_right;
 
     float[,] new_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
     float[,] base_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+    float[,] raw_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+    float[,] placed_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
 
     float horizontalInput;
     float verticalInput;
@@ -36,7 +39,7 @@ public class player : MonoBehaviour
     Rigidbody mainPlayer;
 
     public const int port = 9022;
-    public const string my_ip = "10.42.0.1";
+    public const string my_ip = "169.254.90.228";
     UdpClient client;
     Thread networkThread;
 
@@ -46,8 +49,8 @@ public class player : MonoBehaviour
         Quaternion temp;
         temp.w = incoming_quaternion.w;
         temp.x = incoming_quaternion.y;
-        temp.y = incoming_quaternion.z;
-        temp.z = incoming_quaternion.x * -1;
+        temp.z = incoming_quaternion.z;
+        temp.y = incoming_quaternion.x * -1;
 
         return temp;
     }
@@ -62,10 +65,16 @@ public class player : MonoBehaviour
         return outer;
     }
 
-    public string float_array_to_string(float[] incoming_floats, int l)
+    public string float_array_to_string(float[,] incoming_floats)
     {
         string temp_string = "";
-
+        for (int outer = 0; outer < NUMBER_OF_DEVICES; outer++)
+        {
+            for (int i = 0; i < DATA_POINTS; i++)
+            {
+                temp_string = temp_string + Math.Round(incoming_floats[outer, i], 3).ToString() + ((i == DATA_POINTS - 1) ? "\n" : "    ");
+            }
+        }
         return temp_string;
     }
 
@@ -76,10 +85,12 @@ public class player : MonoBehaviour
         {
             for (int j = 0; j < DATA_POINTS; j++)
             {
+                // base_values[i, j] = ;
                 base_values[i, j] = 0 - new_values[i, j];
             }
         }
     }
+
 
     void Start()
     {
@@ -90,30 +101,30 @@ public class player : MonoBehaviour
         client = new UdpClient();
         Array.Clear(new_values, 0, 2);
         Array.Clear(base_values, 0, 2);
+        Array.Clear(raw_values, 0, 2);
+        Array.Clear(placed_values, 0, 2);
 
-        // Collect T-Pose base values
-        float[] data = new float[4];
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-        {
-            if (i == 0)
-            {
-                data = quaternion_to_array(bone_upper_right.transform.rotation);
-            }
-            if (i == 1)
-            {
-                data = quaternion_to_array(bone_lower_right.transform.rotation);
-            }
-            if (i == 2)
-            {
-                data = quaternion_to_array(bone_hand_right.transform.rotation);
-            }
-            for (int j = 0; j < DATA_POINTS; j++)
-            {
-                base_values[i, j] = data[j];
-            }
-        }
-
-        // Debug.Log(String.Join(" ", base_values.Cast<float>()));
+        // // Collect T-Pose base values
+        // float[] data = new float[4];
+        // for (int i = 0; i < NUMBER_OF_DEVICES; i++)
+        // {
+        //     if (i == 0)
+        //     {
+        //         data = quaternion_to_array(bone_upper_right.transform.rotation);
+        //     }
+        //     if (i == 1)
+        //     {
+        //         data = quaternion_to_array(bone_lower_right.transform.rotation);
+        //     }
+        //     if (i == 2)
+        //     {
+        //         data = quaternion_to_array(bone_hand_right.transform.rotation);
+        //     }
+        //     for (int j = 0; j < DATA_POINTS; j++)
+        //     {
+        //         base_values[i, j] = data[j];
+        //     }
+        // }
 
         networkThread = new Thread(new ThreadStart(GetNetData));
         networkThread.IsBackground = true;
@@ -174,6 +185,7 @@ public class player : MonoBehaviour
                     for (var val = 0; val < DATA_POINTS; val++)
                     {
                         t = float.Parse(single_device[val], System.Globalization.CultureInfo.InvariantCulture);
+                        raw_values[dev, val] = t;
                         new_values[dev, val] = value_clamper(t);
                     }
                 }
@@ -193,7 +205,6 @@ public class player : MonoBehaviour
         {
             // Print the rotation between forarm and bicep
 
-            Debug.Log(Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation));
         }
 
         if (Input.GetKeyDown(KeyCode.T))
@@ -201,16 +212,25 @@ public class player : MonoBehaviour
             t_pose();
         }
 
-        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[0, 1] + new_values[0, 1]), value_clamper(base_values[0, 2] + new_values[0, 2]), value_clamper(base_values[0, 3] + new_values[0, 3]), value_clamper(base_values[0, 0] + new_values[0, 0])));
-        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[1, 1] + new_values[1, 1]), value_clamper(base_values[1, 2] + new_values[1, 2]), value_clamper(base_values[1, 3] + new_values[1, 3]), value_clamper(base_values[1, 0] + new_values[1, 0])));
-        bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(value_clamper(base_values[2, 1] + new_values[2, 1]), value_clamper(base_values[2, 2] + new_values[2, 2]), value_clamper(base_values[2, 3] + new_values[2, 3]), value_clamper(base_values[2, 0] + new_values[2, 0])));
+        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
+        {
+            for (int j = 0; j < DATA_POINTS; j++)
+            {
+                placed_values[i, j] = base_values[i, j] + new_values[i, j];
+            }
+        }
 
-        float a1 = Quaternion.Angle(bone_neck_center.transform.rotation, bone_lower_right.transform.rotation);
+
+        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]));
+        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]));
+        bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]));
+
+        float a1 = Quaternion.Angle(bone_shoulder_right.transform.rotation, bone_lower_right.transform.rotation);
         float a2 = Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation);
         float a3 = Quaternion.Angle(bone_lower_right.transform.rotation, bone_hand_right.transform.rotation);
 
         text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}\nWrist Rotation\t{2}", a1, a2, a3);
-        debug_stats.text = String.Format("Received: {0}\nTransform: {1}");
+        debug_stats.text = String.Format("Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nPlaced:\n{3}", float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values), float_array_to_string(placed_values));
 
     }
 
