@@ -31,6 +31,7 @@ public class player : MonoBehaviour
     float[,] base_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
     float[,] raw_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
     float[,] placed_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+    float[,] manipulated_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
 
     float horizontalInput;
     float verticalInput;
@@ -39,7 +40,7 @@ public class player : MonoBehaviour
     Rigidbody mainPlayer;
 
     public const int port = 9022;
-    public const string my_ip = "169.254.90.228";
+    public const string my_ip = "169.254.85.90";
     UdpClient client;
     Thread networkThread;
 
@@ -52,16 +53,42 @@ public class player : MonoBehaviour
         temp.z = incoming_quaternion.z;
         temp.y = incoming_quaternion.x * -1;
 
-        return temp;
+        return temp.normalized;
     }
 
     public float[] quaternion_to_array(Quaternion incoming_quaternion)
     {
-        float[] outer = new float[4];
+        float[] outer = new float[DATA_POINTS];
         outer[0] = incoming_quaternion.w;
         outer[1] = incoming_quaternion.x;
         outer[2] = incoming_quaternion.y;
         outer[3] = incoming_quaternion.z;
+        return outer;
+    }
+
+    public float[,] quaternion_to_array(GameObject a, GameObject b, GameObject c)
+    {
+        float[,] outer = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+        float[] data = new float[DATA_POINTS];
+        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
+        {
+            if (i == 0)
+            {
+                data = quaternion_to_array(a.transform.rotation);
+            }
+            else if (i == 1)
+            {
+                data = quaternion_to_array(b.transform.rotation);
+            }
+            else
+            {
+                data = quaternion_to_array(c.transform.rotation);
+            }
+            for (int j = 0; j < DATA_POINTS; j++)
+            {
+                outer[i, j] = data[j];
+            }
+        }
         return outer;
     }
 
@@ -103,28 +130,7 @@ public class player : MonoBehaviour
         Array.Clear(base_values, 0, 2);
         Array.Clear(raw_values, 0, 2);
         Array.Clear(placed_values, 0, 2);
-
-        // // Collect T-Pose base values
-        // float[] data = new float[4];
-        // for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-        // {
-        //     if (i == 0)
-        //     {
-        //         data = quaternion_to_array(bone_upper_right.transform.rotation);
-        //     }
-        //     if (i == 1)
-        //     {
-        //         data = quaternion_to_array(bone_lower_right.transform.rotation);
-        //     }
-        //     if (i == 2)
-        //     {
-        //         data = quaternion_to_array(bone_hand_right.transform.rotation);
-        //     }
-        //     for (int j = 0; j < DATA_POINTS; j++)
-        //     {
-        //         base_values[i, j] = data[j];
-        //     }
-        // }
+        Array.Clear(manipulated_values, 0, 2);
 
         networkThread = new Thread(new ThreadStart(GetNetData));
         networkThread.IsBackground = true;
@@ -221,16 +227,26 @@ public class player : MonoBehaviour
         }
 
 
-        bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]));
-        bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]));
-        bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]));
+        // bone_upper_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]));
+        // bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]));
+        // bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]));
+
+        // bone_upper_right.transform.rotation = new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
+        // bone_lower_right.transform.rotation = new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
+        // bone_hand_right.transform.rotation = new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
+
+        bone_upper_right.transform.rotation.Set(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
+        bone_lower_right.transform.rotation.Set(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
+        bone_hand_right.transform.rotation.Set(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
 
         float a1 = Quaternion.Angle(bone_shoulder_right.transform.rotation, bone_lower_right.transform.rotation);
         float a2 = Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation);
         float a3 = Quaternion.Angle(bone_lower_right.transform.rotation, bone_hand_right.transform.rotation);
 
+        manipulated_values = quaternion_to_array(bone_upper_right, bone_lower_right, bone_hand_right);
+
         text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}\nWrist Rotation\t{2}", a1, a2, a3);
-        debug_stats.text = String.Format("Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nPlaced:\n{3}", float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values), float_array_to_string(placed_values));
+        debug_stats.text = String.Format("Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}", float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values), float_array_to_string(manipulated_values), float_array_to_string(placed_values));
 
     }
 
