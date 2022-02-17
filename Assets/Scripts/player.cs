@@ -15,6 +15,8 @@ public class player : MonoBehaviour
     // Start is called before the first frame update
     static int NUMBER_OF_DEVICES = 3;
     static int DATA_POINTS = 4;
+    
+    public float rate = 0.1f;
 
     public TextMeshProUGUI text_stats;
     public TextMeshProUGUI debug_stats;
@@ -26,6 +28,8 @@ public class player : MonoBehaviour
     public GameObject bone_upper_right;
     public GameObject bone_lower_right;
     public GameObject bone_hand_right;
+
+    Transform shoulder, hand, bicep, forearm;
 
     float[,] new_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
     float[,] base_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
@@ -40,7 +44,7 @@ public class player : MonoBehaviour
     Rigidbody mainPlayer;
 
     public const int port = 9022;
-    public const string my_ip = "169.254.85.90";
+    public const string my_ip = "169.254.2.62";
     UdpClient client;
     Thread networkThread;
 
@@ -123,6 +127,10 @@ public class player : MonoBehaviour
     {
         mainPlayer = GetComponent<Rigidbody>();
 
+        bicep = bone_upper_right.transform;
+        shoulder = bone_shoulder_right.transform;
+        hand = bone_hand_right.transform;
+        forearm = bone_lower_right.transform;
         // All game objects to be assigned in the properties of the model.
 
         client = new UdpClient();
@@ -161,12 +169,13 @@ public class player : MonoBehaviour
 
     void GetNetData()
     {
-        // IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
+        IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
         // IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
-        IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
+        // IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
         client = new UdpClient(me);
         client.Client.Blocking = false;
         client.Client.ReceiveTimeout = 100;
+        
 
         Debug.Log("Started network thread. Listening on: " + client.Client.LocalEndPoint.ToString());
 
@@ -218,6 +227,12 @@ public class player : MonoBehaviour
             t_pose();
         }
 
+        // if (Input.GetMouseButtonDown(0))
+        // {
+        //     Camera.main..x += Input.GetAxis("Mouse X") * sensitivity;
+        //     currentRotation.y += Input.GetAxis("Mouse Y") * sensitivity;
+        // }
+
         for (int i = 0; i < NUMBER_OF_DEVICES; i++)
         {
             for (int j = 0; j < DATA_POINTS; j++)
@@ -231,13 +246,21 @@ public class player : MonoBehaviour
         // bone_lower_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]));
         // bone_hand_right.transform.rotation = quaternion_manipulator(new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]));
 
-        // bone_upper_right.transform.rotation = new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
-        // bone_lower_right.transform.rotation = new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
-        // bone_hand_right.transform.rotation = new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
+        // bicep.rotation = new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
+        // forearm.transform.rotation = new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
+        // hand.transform.rotation = new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
 
-        bone_upper_right.transform.rotation.Set(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
-        bone_lower_right.transform.rotation.Set(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
-        bone_hand_right.transform.rotation.Set(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
+        bicep.transform.rotation = Quaternion.Lerp( bicep.transform.rotation,new Quaternion(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]), rate);
+        forearm.transform.rotation = Quaternion.Lerp(forearm.transform.rotation,new Quaternion(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]), rate);
+        hand.transform.rotation = Quaternion.Lerp(hand.transform.rotation,new Quaternion(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]), rate);
+
+        // bone_upper_right.transform.rotation.Set(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
+        // bone_lower_right.transform.rotation.Set(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
+        // bone_hand_right.transform.rotation.Set(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
+
+        // bone_upper_right.transform.rotation.Set(placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0]);
+        // bone_lower_right.transform.rotation.Set(placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0]);
+        // bone_hand_right.transform.rotation.Set(placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0]);
 
         float a1 = Quaternion.Angle(bone_shoulder_right.transform.rotation, bone_lower_right.transform.rotation);
         float a2 = Quaternion.Angle(bone_upper_right.transform.rotation, bone_lower_right.transform.rotation);
