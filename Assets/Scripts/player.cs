@@ -176,10 +176,15 @@ public class player : MonoBehaviour {
 					if( !stream.DataAvailable ) {
 						waited_data_messages++;
 						if( waited_data_messages > 10 ) {
+							waited_data_messages = 0;
 							Debug.Log( "No data received from client." );
 							break;
 						}
-						yield return new WaitForSeconds( 0.01f ); // Wait 10 milliseconds before trying again.
+						if( waited_data_messages < 5 ) {
+							yield return new WaitForSeconds( 0.01f ); // Wait 10 milliseconds before trying again.
+						} else {
+							yield return new WaitForSeconds( 0.1f ); // Wait 10 milliseconds before trying again.
+						}
 						continue;
 					}
 
