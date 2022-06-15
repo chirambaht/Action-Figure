@@ -189,8 +189,8 @@ public class player : MonoBehaviour {
 						continue;
 					}
 
-					int i = stream.Read( rec_data, 0, rec_data.Length );
-
+					int i				 = stream.Read( rec_data, 0, rec_data.Length );
+					waited_data_messages = 0;
 					// print the received bytes
 					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5] );
 
