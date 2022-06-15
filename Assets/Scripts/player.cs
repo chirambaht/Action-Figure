@@ -163,7 +163,7 @@ public class player : MonoBehaviour {
 
 		tcp_listener = new TcpListener( IPAddress.Parse( my_ip ), port );
 		tcp_listener.Start();
-
+		int waited_data_messages = 0;
 		while( true ) {
 			try {
 				Debug.Log( "Waiting for a connection... " );
@@ -173,7 +173,18 @@ public class player : MonoBehaviour {
 				NetworkStream stream = client.GetStream();
 
 				while( client.Connected ) {
+					if( !stream.DataAvailable ) {
+						waited_data_messages++;
+						if( waited_data_messages > 10 ) {
+							Debug.Log( "No data received from client." );
+							break;
+						}
+						yield return new WaitForSeconds( 0.01f ); // Wait 10 milliseconds before trying again.
+						continue;
+					}
+
 					int i = stream.Read( rec_data, 0, rec_data.Length );
+
 					// print the received bytes
 					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5] );
 
