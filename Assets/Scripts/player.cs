@@ -181,6 +181,7 @@ public class player : MonoBehaviour {
 					// print the received bytes as ints
 					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", bytesAsInts[0], bytesAsInts[1], bytesAsInts[2], bytesAsInts[3], bytesAsInts[4], bytesAsInts[5] );
 				}
+				stream.Dispose();
 
 				// UDP Work
 				// byte [] data = new byte[1024];
@@ -217,7 +218,6 @@ public class player : MonoBehaviour {
 				err.ToString();
 			} finally {
 				client.Close();
-				stream.Dispose();
 			}
 		}
 	}
