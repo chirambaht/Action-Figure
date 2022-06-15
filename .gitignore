@@ -73,3 +73,7 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 Assets/Scripts/.clang-format
+Packages/packages-lock.json
+ProjectSettings/ProjectVersion.txt
+Packages/packages-lock.json
+ProjectSettings/ProjectVersion.txt

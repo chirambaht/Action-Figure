@@ -45,7 +45,7 @@ public class player : MonoBehaviour {
 
 	// Network Variables
 	public const int	port  = 9022;
-	public const string my_ip = "192.168.1.101";
+	public const string my_ip = "192.168.1.102";
 	Byte[] rec_data			  = new Byte[1024];
 
 	// UDP Variables
@@ -159,7 +159,7 @@ public class player : MonoBehaviour {
 		// client.Client.ReceiveTimeout = 100;
 
 		// TCP Variables
-		Debug.Log( String.Format( "Started network thread. Listening on: {0}:{1}", my_ip, port ) );
+		Debug.LogFormat( "Started network thread. Listening on: {0}:{1}", my_ip, port );
 
 		tcp_listener = new TcpListener( IPAddress.Parse( my_ip ), port );
 		tcp_listener.Start();
@@ -168,7 +168,7 @@ public class player : MonoBehaviour {
 			try {
 				Debug.Log( "Waiting for a connection... " );
 				TcpClient client = tcp_listener.AcceptTcpClient();
-				Debug.Log( String.Format( "Connected to client {0}", client.Client.RemoteEndPoint ) );
+				Debug.LogFormat( "Connected to client {0}", client.Client.RemoteEndPoint );
 
 				NetworkStream stream = client.GetStream();
 
@@ -180,7 +180,7 @@ public class player : MonoBehaviour {
 							Debug.Log( "No data received from client." );
 							break;
 						}
-						if( waited_data_messages < 7 ) {
+						if( waited_data_messages < 5 ) {
 							Thread.Sleep( 10 );
 						} else {
 							Thread.Sleep( 1000 );
