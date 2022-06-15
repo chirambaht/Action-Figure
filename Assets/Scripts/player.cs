@@ -181,9 +181,9 @@ public class player : MonoBehaviour {
 							break;
 						}
 						if( waited_data_messages < 5 ) {
-							yield return new WaitForSeconds( 0.01f ); // Wait 10 milliseconds before trying again.
+							Thread.Sleep( 10 );
 						} else {
-							yield return new WaitForSeconds( 0.1f ); // Wait 10 milliseconds before trying again.
+							Thread.Sleep( 100 );
 						}
 						continue;
 					}
