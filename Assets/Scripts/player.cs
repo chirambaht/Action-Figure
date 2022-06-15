@@ -45,7 +45,7 @@ public class player : MonoBehaviour {
 
 	// Network Variables
 	public const int	port  = 9022;
-	public const string my_ip = "192.168.0.149";
+	public const string my_ip = "192.168.1.101";
 	Byte[] rec_data			  = new Byte[1024];
 
 	// UDP Variables
