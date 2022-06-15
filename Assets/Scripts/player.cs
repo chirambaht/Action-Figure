@@ -177,7 +177,7 @@ public class player : MonoBehaviour {
 					if( Input.GetKeyDown( KeyCode.Z ) ) {
 						// Close client and stream
 						client.Close();
-						stream.Close();
+						stream.Dispose();
 
 						break;
 					}
@@ -189,9 +189,8 @@ public class player : MonoBehaviour {
 					// print the received bytes as ints
 					Debug.Log( bytesAsInts );
 				}
-				stream.Close( 10 );
 				client.Close();
-				client.Stop();
+				stream.Dispose();
 
 				// UDP Work
 				// byte [] data = new byte[1024];
