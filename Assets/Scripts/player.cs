@@ -180,10 +180,11 @@ public class player : MonoBehaviour {
 							Debug.Log( "No data received from client." );
 							break;
 						}
-						if( waited_data_messages < 5 ) {
+						if( waited_data_messages < 7 ) {
 							Thread.Sleep( 10 );
 						} else {
-							Thread.Sleep( 100 );
+							Thread.Sleep( 1000 );
+							Debug.LogFormat( "Only {0}s left to for data", 10 - waited_data_messages );
 						}
 						continue;
 					}
