@@ -15,6 +15,7 @@ public class player : MonoBehaviour
     // Start is called before the first frame update
     static int NUMBER_OF_DEVICES = 3;
     static int DATA_POINTS = 4;
+    static int DATA_START_POINT = 3;
     
     public float rate = 0.1f;
 
@@ -43,9 +44,17 @@ public class player : MonoBehaviour
     float[] offsets = new float[4];
     Rigidbody mainPlayer;
 
+    // Network Variables
     public const int port = 9022;
-    public const string my_ip = "169.254.2.62";
+    public const string my_ip = "192.168.0.149";
+    Byte[] rec_data = new Byte[1024];
+
+    // UDP Variables
     UdpClient client;
+
+    // TCP Variables
+    TcpClient tcp_client;
+    TcpListener tcp_listener;
     Thread networkThread;
 
     // COrrects the quaternions base on the MPU direction
@@ -169,41 +178,77 @@ public class player : MonoBehaviour
 
     void GetNetData()
     {
-        IPEndPoint me = new IPEndPoint(IPAddress.Parse("192.168.0.149"), port);
+        
+        // UDP Variables
         // IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
         // IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
-        client = new UdpClient(me);
-        client.Client.Blocking = false;
-        client.Client.ReceiveTimeout = 100;
+        // client = new UdpClient(me);
+        // client.Client.Blocking = false;
+        // client.Client.ReceiveTimeout = 100;
         
+        // TCP Variables
+        Debug.Log( String.Format("Started network thread. Listening on: {0}:{1}", my_ip, port));                
 
-        Debug.Log("Started network thread. Listening on: " + client.Client.LocalEndPoint.ToString());
+        tcp_listener = new TcpListener(IPAddress.Parse(my_ip), port);
+        tcp_listener.Start();
+
 
         while (true)
         {
             try
             {
-                // receive bytes
-                IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 9022);
-                byte[] data = client.Receive(ref anyIP);
+                Debug.Log("Waiting for a connection... ");
+                TcpClient client = tcp_listener.AcceptTcpClient();
+                Debug.Log(String.Format("Connected to client {0}", client.Client.RemoteEndPoint));
 
-                // encode UTF8-coded bytes to text format
-                string text = Encoding.UTF8.GetString(data);
+                NetworkStream stream = client.GetStream();
 
-                string[] devices = text.Split(':');
-                float t;
-
-                for (var dev = 0; dev < NUMBER_OF_DEVICES; dev++)
-                {
-                    string[] single_device = devices[dev].Split(',');
-
-                    for (var val = 0; val < DATA_POINTS; val++)
+                while(client.Connected){
+                    int i = stream.Read(rec_data, 0, rec_data.Length);
+                    if (Input.GetKeyDown(KeyCode.Z))
                     {
-                        t = float.Parse(single_device[val], System.Globalization.CultureInfo.InvariantCulture);
-                        raw_values[dev, val] = t;
-                        new_values[dev, val] = value_clamper(t);
+                        // Close client and stream
+                        client.Close();
+                        stream.Close();
+
+                        break;
+
                     }
+                    // print the received bytes
+
+                    Debug.Log(rec_data);
+                    int[] bytesAsInts = Array.ConvertAll(rec_data, c => (int)c);
+
+                    // print the received bytes as ints
+                    Debug.Log(bytesAsInts);
                 }
+                stream.Close();
+                client.Close();
+               
+               // UDP Work
+                // byte [] data = new byte[1024];
+
+                // for (var a = 0; a < NUMBER_OF_DEVICES * DATA_POINTS; a++){
+                //     data[a] = rec_data[DATA_START_POINT + a];
+                // }
+
+                // // encode UTF8-coded bytes to text format
+                // string text = Encoding.UTF8.GetString(data);
+
+                // string[] devices = text.Split(':');
+                // float t;
+
+                // for (var dev = 0; dev < NUMBER_OF_DEVICES; dev++)
+                // {
+                //     string[] single_device = devices[dev].Split(',');
+
+                //     for (var val = 0; val < DATA_POINTS; val++)
+                //     {
+                //         t = float.Parse(single_device[val], System.Globalization.CultureInfo.InvariantCulture);
+                //         raw_values[dev, val] = t;
+                //         new_values[dev, val] = value_clamper(t);
+                //     }
+                // }
             }
             catch (Exception err)
             {
