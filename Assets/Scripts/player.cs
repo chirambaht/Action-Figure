@@ -174,23 +174,13 @@ public class player : MonoBehaviour {
 
 				while( client.Connected ) {
 					int i = stream.Read( rec_data, 0, rec_data.Length );
-					if( Input.GetKeyDown( KeyCode.Z ) ) {
-						// Close client and stream
-						client.Close();
-						stream.Dispose();
-
-						break;
-					}
 					// print the received bytes
+					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5] );
 
-					Debug.Log( rec_data );
 					int[] bytesAsInts = Array.ConvertAll( rec_data, c => ( int ) c );
-
 					// print the received bytes as ints
 					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", bytesAsInts[0], bytesAsInts[1], bytesAsInts[2], bytesAsInts[3], bytesAsInts[4], bytesAsInts[5] );
 				}
-				client.Close();
-				stream.Dispose();
 
 				// UDP Work
 				// byte [] data = new byte[1024];
@@ -225,6 +215,9 @@ public class player : MonoBehaviour {
 				// }
 			} catch( Exception err ) {
 				err.ToString();
+			} finally {
+				client.Close();
+				stream.Dispose();
 			}
 		}
 	}
