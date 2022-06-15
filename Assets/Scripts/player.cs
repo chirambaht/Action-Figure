@@ -295,6 +295,10 @@ public class player : MonoBehaviour {
 	void OnApplicationQuit() {
 		try {
 			client.Close();
+			tcp_client.Close();
+			tcp_listener.Stop();
+			networkThread.Abort();
+
 		} catch( Exception e ) {
 			Debug.Log( e.Message );
 		}
