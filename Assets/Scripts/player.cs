@@ -187,7 +187,7 @@ public class player : MonoBehaviour {
 					int[] bytesAsInts = Array.ConvertAll( rec_data, c => ( int ) c );
 
 					// print the received bytes as ints
-					Debug.Log( bytesAsInts );
+					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", bytesAsInts[0], bytesAsInts[1], bytesAsInts[2], bytesAsInts[3], bytesAsInts[4], bytesAsInts[5] );
 				}
 				client.Close();
 				stream.Dispose();
