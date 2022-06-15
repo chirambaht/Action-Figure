@@ -189,8 +189,9 @@ public class player : MonoBehaviour {
 					// print the received bytes as ints
 					Debug.Log( bytesAsInts );
 				}
-				stream.Close();
+				stream.Close( 10 );
 				client.Close();
+				client.Stop();
 
 				// UDP Work
 				// byte [] data = new byte[1024];
