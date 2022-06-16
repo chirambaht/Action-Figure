@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -46,16 +47,20 @@ public class player : MonoBehaviour {
 	// Network Variables
 	public const int	port  = 9022;
 	public const string my_ip = "192.168.1.102";
-	Byte[] rec_data			  = new Byte[1024];
+	Byte[] rec_data			  = new Byte[30];
 
 	// UDP Variables
-	UdpClient client;
+	UdpClient udp_client;
 
 	// TCP Variables
-	TcpClient	tcp_client;
-	TcpListener tcp_listener;
-	Thread		networkThread;
+	TcpClient	  tcp_client;
+	TcpListener	  tcp_listener;
+	Thread		  networkThread;
+	NetworkStream tcp_stream;
 
+	// Logging Variables
+	StreamWriter log_writer;
+	DateTime	 log_time;
 	// COrrects the quaternions base on the MPU direction
 	public Quaternion quaternion_manipulator( Quaternion incoming_quaternion ) {
 		Quaternion temp;
@@ -74,6 +79,34 @@ public class player : MonoBehaviour {
 		outer[2]	  = incoming_quaternion.y;
 		outer[3]	  = incoming_quaternion.z;
 		return outer;
+	}
+
+	private int get_int_from_byte( Byte b1, Byte b2 ) {
+		return ( ( b2 << 8 ) + b1 );
+	}
+
+	public void log_packet( float[] packet ) {
+		string log_string = "";
+		for( int i = 0; i < packet.Length; i++ ) {
+			log_string += packet[i].ToString() + "\t";
+		}
+		Debug.Log( log_string );
+
+		log_writer.WriteLine( log_string );
+	}
+
+	public float[] get_float_array_from_byte_array( Byte[] byte_array, int length = 30, float factor = 10000 ) {
+		int l				= length / 2; // Number of integers in the array
+		float[] float_array = new float[l];
+		for( int i = 0; i < DATA_START_POINT; i++ ) {
+			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 );
+		}
+
+		for( int i = DATA_START_POINT; i < l; i++ ) {
+			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 ) / ( factor );
+			// float_array[i] = get_int_from_byte( byte_array[i * 2], byte_array[i * ( 2 + 1 )] );
+		}
+		return float_array;
 	}
 
 	public float[,] quaternion_to_array( GameObject a, GameObject b, GameObject c ) {
@@ -124,7 +157,7 @@ public class player : MonoBehaviour {
 		forearm	 = bone_lower_right.transform;
 		// All game objects to be assigned in the properties of the model.
 
-		client = new UdpClient();
+		// udp_client = new UdpClient();
 		Array.Clear( new_values, 0, 2 );
 		Array.Clear( base_values, 0, 2 );
 		Array.Clear( raw_values, 0, 2 );
@@ -151,6 +184,9 @@ public class player : MonoBehaviour {
 	}
 
 	void GetNetData() {
+		// Initialize rec_data to 0
+		Array.Clear( rec_data, 0, rec_data.Length );
+
 		// UDP Variables
 		// IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
 		// IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
@@ -164,41 +200,63 @@ public class player : MonoBehaviour {
 		tcp_listener = new TcpListener( IPAddress.Parse( my_ip ), port );
 		tcp_listener.Start();
 		int waited_data_messages = 0;
+		log_time				 = DateTime.Now;
+		Debug.Log( log_time.ToString() );
+		string file_name_for_log = log_time.ToString( "yyyyMMdd_HHmmss" ) + ".act";
+		try {
+			log_writer = new( file_name_for_log, append: true );
+		} catch( Exception e ) {
+			Debug.Log( e.Message );
+		}
+
 		while( true ) {
 			try {
 				Debug.Log( "Waiting for a connection... " );
-				TcpClient client = tcp_listener.AcceptTcpClient();
-				Debug.LogFormat( "Connected to client {0}", client.Client.RemoteEndPoint );
+				tcp_client = tcp_listener.AcceptTcpClient();
+				Debug.LogFormat( "Connected to client {0}", tcp_client.Client.RemoteEndPoint );
 
-				NetworkStream stream = client.GetStream();
+				tcp_stream = tcp_client.GetStream();
 
-				while( client.Connected ) {
-					if( !stream.DataAvailable ) {
+				while( tcp_client.Connected ) {
+					if( !tcp_stream.DataAvailable ) {
 						waited_data_messages++;
-						if( waited_data_messages > 10 ) {
+						if( waited_data_messages > 60 ) {
 							waited_data_messages = 0;
 							Debug.Log( "No data received from client." );
 							break;
 						}
-						if( waited_data_messages < 5 ) {
-							Thread.Sleep( 10 );
+						if( waited_data_messages < 30 ) {
+							Thread.Sleep( 500 );
 						} else {
 							Thread.Sleep( 1000 );
-							Debug.LogFormat( "Only {0}s left to for data", 10 - waited_data_messages );
+							Debug.LogFormat( "Only {0}s left to for data", 60 - waited_data_messages );
 						}
 						continue;
 					}
 
-					int i				 = stream.Read( rec_data, 0, rec_data.Length );
+					int bbyytteess		 = tcp_stream.Read( rec_data, 0, rec_data.Length );
 					waited_data_messages = 0;
 					// print the received bytes
-					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5] );
+					// Debug.LogFormat( "I got {30} bytes:\n{0}-{1} {2}-{3} {4}-{5} || {6}-{7} {8}-{9} {10}-{11} {12}-{13} | {14}-{15} {16}-{17} {18}-{19} {20}-{21} | {22}-{23} {24}-{25} {26}-{27} {28}-{29}", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5], rec_data[6], rec_data[7], rec_data[8], rec_data[9], rec_data[10], rec_data[11], rec_data[12], rec_data[13], rec_data[14], rec_data[15], rec_data[16], rec_data[17], rec_data[18], rec_data[19], rec_data[20], rec_data[21], rec_data[22], rec_data[23], rec_data[24], rec_data[25], rec_data[26], rec_data[27], rec_data[28], rec_data[29], bbyytteess );
+					float[] in_data = get_float_array_from_byte_array( rec_data );
+					// Debug.LogFormat( "Floats: {0} {1} {2} | {3} {4} {5} {6} | {7} {8} {9} {10} | {11} {12} {13} {14}", in_data[0], in_data[1], in_data[2], in_data[3], in_data[4], in_data[5], in_data[6], in_data[7], in_data[8], in_data[9], in_data[10], in_data[11], in_data[12], in_data[13], in_data[14] );
 
-					int[] bytesAsInts = Array.ConvertAll( rec_data, c => ( int ) c );
-					// print the received bytes as ints
-					Debug.LogFormat( "{0}-{1} {2}-{3} {4}-{5} ...", bytesAsInts[0], bytesAsInts[1], bytesAsInts[2], bytesAsInts[3], bytesAsInts[4], bytesAsInts[5] );
+					// write packet to log file
+					log_packet( in_data );
+
+					for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
+						for( int j = 0; j < DATA_POINTS; j++ ) {
+							raw_values[i, j] = in_data[( i * DATA_POINTS ) + j + DATA_START_POINT];
+							new_values[i, j] = value_clamper( in_data[( i * DATA_POINTS ) + j + DATA_START_POINT] );
+						}
+					}
+
+					// check if tcp client is still connected
+					if( !tcp_client.Connected ) {
+						Debug.Log( "Client disconnected." );
+						break;
+					}
 				}
-				stream.Dispose();
 
 				// UDP Work
 				// byte [] data = new byte[1024];
@@ -234,7 +292,19 @@ public class player : MonoBehaviour {
 			} catch( Exception err ) {
 				err.ToString();
 			} finally {
-				client.Close();
+				// udp_client.Close();
+				// Debug.Log( "UDP client closed" );
+
+				// if( tcp_stream != null ) {
+				// 	tcp_stream.Close();
+				// 	tcp_stream.Dispose();
+				// 	Debug.Log( "TCP stream closed" );
+				// }
+
+				// if( tcp_client.Connected ) {
+				// 	tcp_client.Close();
+				// 	Debug.Log( "TCP client closed" );
+				// }
 			}
 		}
 	}
@@ -294,13 +364,39 @@ public class player : MonoBehaviour {
 
 	void OnApplicationQuit() {
 		try {
-			client.Close();
-			tcp_client.Close();
-			tcp_listener.Stop();
-			networkThread.Abort();
+			Debug.Log( "Closing everything..." );
 
+			// udp_client.Close();
+			// Debug.Log( "UDP client closed" );
+
+			if( log_writer != null ) {
+				log_writer.Close();
+				Debug.Log( "Log writer closed" );
+			}
+
+			if( tcp_stream != null ) {
+				tcp_stream.Close();
+				tcp_stream.Dispose();
+				Debug.Log( "TCP stream closed" );
+			}
+
+			if( tcp_client.Connected ) {
+				tcp_client.Close();
+				Debug.Log( "TCP client closed" );
+			}
+
+			if( tcp_listener.Server.IsBound ) {
+				tcp_listener.Stop();
+				Debug.Log( "TCP listener stopped" );
+			}
+
+			if( networkThread.IsAlive ) {
+				networkThread.Abort();
+				Debug.Log( "Network thread stopped" );
+			}
+			Debug.Log( "Done" );
 		} catch( Exception e ) {
-			Debug.Log( e.Message );
+			Debug.LogException( e, this );
 		}
 	}
 }
