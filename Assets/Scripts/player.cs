@@ -90,8 +90,6 @@ public class player : MonoBehaviour {
 		for( int i = 0; i < packet.Length; i++ ) {
 			log_string += packet[i].ToString() + "\t";
 		}
-		Debug.Log( log_string );
-
 		log_writer.WriteLine( log_string );
 	}
 
@@ -201,7 +199,7 @@ public class player : MonoBehaviour {
 		tcp_listener.Start();
 		int waited_data_messages = 0;
 		log_time				 = DateTime.Now;
-		Debug.Log( log_time.ToString() );
+		Debug.LogFormat( "Logging to {0}.act", log_time.ToString( "yyyyMMdd_HHmmss" ) );
 		string file_name_for_log = log_time.ToString( "yyyyMMdd_HHmmss" ) + ".act";
 		try {
 			log_writer = new( file_name_for_log, append: true );
