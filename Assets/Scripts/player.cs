@@ -17,6 +17,19 @@ public class player : MonoBehaviour {
 	static int DATA_POINTS		 = 4;
 	static int DATA_START_POINT	 = 3;
 
+	static string[] combo_list = { "123001", "123010", "123011", "123100", "123101", "123110", "123111", "123000", "132001", "132010", "132011", "132100", "132101", "132110", "132111", "132000", "213001", "213010", "213011", "213100", "213101", "213110", "213111", "213000", "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000", "312001", "312010", "312011", "312100", "312101", "312110", "312111", "312000", "321001", "321010", "321011", "321100", "321101", "321110", "321111", "321000" };
+	int combo_index			   = 0;
+
+	public int DATA_PACKET_W = 0;
+	public int DATA_PACKET_X = 2;
+	public int DATA_PACKET_Y = 3;
+	public int DATA_PACKET_Z = 1;
+
+	public int W_SCALER = 1;
+	public int X_SCALER = -1;
+	public int Y_SCALER = -1;
+	public int Z_SCALER = 1;
+
 	public float rate = 0.1f;
 
 	public TextMeshProUGUI text_stats;
@@ -43,6 +56,12 @@ public class player : MonoBehaviour {
 
 	float[] offsets = new float[4];
 	Rigidbody mainPlayer;
+
+	// Stored variables
+	string hand_choice;
+	string gender_choice;
+	string name_choice;
+	int	   mass_choice;
 
 	// Network Variables
 	public const int	port  = 9022;
@@ -140,19 +159,68 @@ public class player : MonoBehaviour {
 		// Recenters according to T-Pose
 		for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
 			for( int j = 0; j < DATA_POINTS; j++ ) {
-				// base_values[i, j] = ;
 				base_values[i, j] = 0 - new_values[i, j];
 			}
 		}
 	}
 
+	public void next_combo( bool forward = true ) {
+		if( forward ) {
+			combo_index++;
+		} else {
+			combo_index--;
+		}
+
+		if( combo_index > combo_list.Length - 1 ) {
+			combo_index = 0;
+		} else if( combo_index < 0 ) {
+			combo_index = combo_list.Length - 1;
+		}
+
+		string combo = combo_list[combo_index];
+		Debug.LogFormat( "Combo: {0}", combo );
+
+		int x = int.Parse( combo.Substring( 3, 1 ) );
+		int y = int.Parse( combo.Substring( 4, 1 ) );
+		int z = int.Parse( combo.Substring( 5, 1 ) );
+
+		if( x == 0 ) {
+			X_SCALER = -1;
+		} else {
+			X_SCALER = 1;
+		}
+		if( y == 0 ) {
+			Y_SCALER = -1;
+		} else {
+			Y_SCALER = 1;
+		}
+		if( z == 0 ) {
+			Z_SCALER = -1;
+		} else {
+			Z_SCALER = 1;
+		}
+		DATA_PACKET_X = int.Parse( combo.Substring( 0, 1 ) );
+		DATA_PACKET_Y = int.Parse( combo.Substring( 1, 1 ) );
+		DATA_PACKET_Z = int.Parse( combo.Substring( 2, 1 ) );
+		// X_SCALER	  = x;
+		// Y_SCALER	  = y;
+		// Z_SCALER	  = z;
+	}
+
 	void Start() {
 		mainPlayer = GetComponent<Rigidbody>();
 
-		bicep	 = bone_upper_right.transform;
-		shoulder = bone_shoulder_right.transform;
-		hand	 = bone_hand_right.transform;
-		forearm	 = bone_lower_right.transform;
+		hand_choice	  = PlayerPrefs.GetString( "hand" );
+		gender_choice = PlayerPrefs.GetString( "gender" );
+		name_choice	  = PlayerPrefs.GetString( "name" );
+		mass_choice	  = PlayerPrefs.GetInt( "mass" );
+
+		Debug.LogFormat( "Name: {0}\nMass: {1}\nGender: {2}\nHand: {3}", name_choice, mass_choice, gender_choice, hand_choice );
+
+		bicep = bone_upper_right.transform;
+		// shoulder = bone_shoulder_right.transform;
+		hand	= bone_hand_right.transform;
+		forearm = bone_lower_right.transform;
 		// All game objects to be assigned in the properties of the model.
 
 		// udp_client = new UdpClient();
@@ -312,6 +380,14 @@ public class player : MonoBehaviour {
 		if( Input.GetKeyDown( KeyCode.R ) ) {
 			// Print the rotation between forarm and bicep
 		}
+		if( Input.GetKeyDown( KeyCode.H ) ) {
+			// Change combination to next one
+			next_combo();
+		}
+		if( Input.GetKeyDown( KeyCode.G ) ) {
+			// Change combination to previous one
+			next_combo( false );
+		}
 
 		if( Input.GetKeyDown( KeyCode.T ) ) {
 			t_pose();
@@ -323,24 +399,18 @@ public class player : MonoBehaviour {
 			}
 		}
 
-		bicep.transform.rotation = Quaternion.Lerp(
-			bicep.transform.rotation,
-			new Quaternion( placed_values[0, 1], placed_values[0, 2], placed_values[0, 3], placed_values[0, 0] ), rate );
-		forearm.transform.rotation = Quaternion.Lerp(
-			forearm.transform.rotation,
-			new Quaternion( placed_values[1, 1], placed_values[1, 2], placed_values[1, 3], placed_values[1, 0] ), rate );
-		hand.transform.rotation = Quaternion.Lerp(
-			hand.transform.rotation,
-			new Quaternion( placed_values[2, 1], placed_values[2, 2], placed_values[2, 3], placed_values[2, 0] ), rate );
+		bicep.transform.rotation   = Quaternion.Lerp( bicep.transform.rotation, new Quaternion( placed_values[0, DATA_PACKET_X] * X_SCALER, placed_values[0, DATA_PACKET_Y] * Y_SCALER, placed_values[0, DATA_PACKET_Z] * Z_SCALER, placed_values[0, DATA_PACKET_W] * W_SCALER ), rate );
+		forearm.transform.rotation = Quaternion.Lerp( forearm.transform.rotation, new Quaternion( placed_values[1, DATA_PACKET_X] * X_SCALER, placed_values[1, DATA_PACKET_Y] * Y_SCALER, placed_values[1, DATA_PACKET_Z] * Z_SCALER, placed_values[1, DATA_PACKET_W] * W_SCALER ), rate );
+		hand.transform.rotation	   = Quaternion.Lerp( hand.transform.rotation, new Quaternion( placed_values[2, DATA_PACKET_X] * X_SCALER, placed_values[2, DATA_PACKET_Y] * Y_SCALER, placed_values[2, DATA_PACKET_Z] * Z_SCALER, placed_values[2, DATA_PACKET_W] * W_SCALER ), rate );
 
-		float a1 = Quaternion.Angle( bone_shoulder_right.transform.rotation, bone_lower_right.transform.rotation );
-		float a2 = Quaternion.Angle( bone_upper_right.transform.rotation, bone_lower_right.transform.rotation );
-		float a3 = Quaternion.Angle( bone_lower_right.transform.rotation, bone_hand_right.transform.rotation );
+		// float a1 = Quaternion.Angle( shoulder.rotation, forearm.rotation );
+		float a2 = Quaternion.Angle( bicep.rotation, forearm.rotation );
+		float a3 = Quaternion.Angle( forearm.rotation, hand.rotation );
 
 		manipulated_values = quaternion_to_array( bone_upper_right, bone_lower_right, bone_hand_right );
 
 		text_stats.text =
-			String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}\nWrist Rotation\t{2}", a1, a2, a3 );
+			String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3 );
 		debug_stats.text = String.Format(
 			"Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
 			float_array_to_string( raw_values ), float_array_to_string( base_values ), float_array_to_string( new_values ),
@@ -350,13 +420,6 @@ public class player : MonoBehaviour {
 	void FixedUpdate() {
 		if( Physics.OverlapSphere( groundCheckTransform.position, 0.1f ).Length <= 1 ) {
 			return;
-		}
-	}
-
-	private void onTriggerEnter( Collision other ) {
-		Debug.Log( "Crash" );
-		if( other.gameObject.name == "coin" ) {
-			Destroy( other.gameObject );
 		}
 	}
 
