@@ -5,63 +5,77 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.Net;
 
-public class menu : MonoBehaviour {
-	public GameObject	  selected_sprite;
-	public TMP_Dropdown	  gender_dropdown;
-	public TMP_Dropdown	  hand_dropdown;
-	public TMP_Dropdown	  ip_dropdown;
-	public TMP_InputField participant_name;
-	public TMP_InputField participant_mass;
-	List<string>		  genders				 = new List<string>( new string[] { "Male", "Female" } );
-	List<string>		  hands					 = new List<string>( new string[] { "Left", "Right" } );
-	int					  how_far_have_i_rotated = 0;
+public class menu : MonoBehaviour
+{
+    public GameObject selected_sprite;
+    public TMP_Dropdown gender_dropdown;
+    public TMP_Dropdown hand_dropdown;
+    public TMP_Dropdown ip_dropdown;
+    public TMP_InputField participant_name;
+    public TMP_InputField participant_mass;
+    List<string> genders = new List<string>(new string[] { "Male", "Female" });
+    List<string> hands = new List<string>(new string[] { "Left", "Right" });
+    List<string> ips = new List<string>();
+    // int					  how_far_have_i_moved = 0;
 
-	public void exit() {
-		Debug.Log( "Game closed" );
-		Application.Quit();
-	}
+    public void exit()
+    {
+        Debug.Log("Game closed");
+        Application.Quit();
+    }
 
-	public void start_data_collection() {
-		Debug.LogFormat( "Name: {0}\nMass: {1}\nGender: {2}\nHand: {3}", participant_name.text, participant_mass.text, genders[gender_dropdown.value], hands[hand_dropdown.value] );
-		PlayerPrefs.SetString( "hand", hands[hand_dropdown.value] );
-		PlayerPrefs.SetString( "gender", genders[gender_dropdown.value] );
-		PlayerPrefs.SetString( "name", participant_name.text );
-		// PlayerPrefs.SetString( "ip", participant_name.text ); GET THIS NEXT
-		PlayerPrefs.SetInt( "mass", int.Parse( participant_mass.text ) );
-		SceneManager.LoadScene( "Action Scene" );
-	}
+    public void start_data_collection()
+    {
+        Debug.LogFormat("Name: {0}\nMass: {1}\nGender: {2}\nHand: {3}", participant_name.text, participant_mass.text, genders[gender_dropdown.value], hands[hand_dropdown.value]);
+        PlayerPrefs.SetString("hand", hands[hand_dropdown.value]);
+        PlayerPrefs.SetString("gender", genders[gender_dropdown.value]);
+        PlayerPrefs.SetString("name", participant_name.text);
+        PlayerPrefs.SetString("ip", ips[ip_dropdown.value]);
+        PlayerPrefs.SetInt("mass", int.Parse(participant_mass.text));
+        SceneManager.LoadScene("Action Scene");
+    }
 
-	public void select_sprite() {
-		// read dropdown menu
-		if( selected_sprite == GameObject.Find( "xbot" ) ) {
-			selected_sprite.transform.Rotate( 0, -2 * how_far_have_i_rotated, 0 );
-			selected_sprite = GameObject.Find( "ybot" );
-		} else {
-			selected_sprite.transform.Rotate( 0, -2 * how_far_have_i_rotated, 0 );
-			selected_sprite = GameObject.Find( "xbot" );
-		}
-		how_far_have_i_rotated = 0;
-		// set sprite
-	}
+    // public void change_sprite_active( GameObject sprite, bool active_level ) {
+    // 	sprite.GetComponent<Renderer>().enabled = active_level;
+    // 	sprite.SetActive( true );
+    // }
 
-	// Start is called before the first frame update
-	void Start() {
-		gender_dropdown.AddOptions( genders );
-		hand_dropdown.AddOptions( hands );
-		List<string> ips = new List<string>();
+    public void select_sprite()
+    {
+        // read dropdown menu
+        Vector3 pozi = selected_sprite.transform.position;
+        if (selected_sprite == GameObject.Find("xbot"))
+        {
+            selected_sprite.transform.position = new Vector3(-200.0f, 5000.0f, -50.0f);
+            selected_sprite = GameObject.Find("ybot");
+            selected_sprite.transform.position = pozi;
+        }
+        else
+        {
+            selected_sprite.transform.position = new Vector3(-200.0f, 5000.0f, 50.0f);
+            selected_sprite = GameObject.Find("xbot");
+            selected_sprite.transform.position = pozi;
+        }
+        // set sprite
+        //change game object position		
+    }
 
-		foreach( var item in( Dns.GetHostEntry( Dns.GetHostName() ).AddressList ) ) {
-			ips.Add( item.ToString() );
-		}
-		ip_dropdown.AddOptions( ips );
-		// Get machine IP address
+    // Start is called before the first frame update
+    void Start()
+    {
+        gender_dropdown.AddOptions(genders);
+        hand_dropdown.AddOptions(hands);
 
-		Debug.Log( Dns.GetHostEntry( Dns.GetHostName() ).AddressList );
-	}
+        foreach (var item in (Dns.GetHostEntry(Dns.GetHostName()).AddressList))
+        {
+            ips.Add(item.ToString());
+        }
+        ip_dropdown.AddOptions(ips);
+    }
 
-	// Update is called once per frame
-	void Update() {
-		selected_sprite.transform.Rotate( 0, selected_sprite.transform.rotation.y + 1, 0 );
-		how_far_have_i_rotated++;
-	}
+    // Update is called once per frame
+    void Update()
+    {
+
+    }
 }
