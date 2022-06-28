@@ -1753,7 +1753,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: 0.06369538, y: -0.012750949, z: -0.0008138959, w: 0.9978876}
-  m_LocalPosition: {x: 0.024, y: 1.977, z: -2.213}
+  m_LocalPosition: {x: 0, y: 2, z: -2.212}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2068,9 +2068,7 @@ MonoBehaviour:
   debug_stats: {fileID: 1713253667}
   groundCheckTransform: {fileID: 504693125}
   handy_dandy: {fileID: 0}
-  bone_upper: {fileID: 0}
-  bone_lower: {fileID: 0}
-  bone_hand: {fileID: 0}
+  side_camera: {fileID: 1341004340}
 --- !u!54 &1058338306
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2593,7 +2591,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1341004340}
   m_LocalRotation: {x: 0, y: 0.38268343, z: 0, w: 0.92387956}
-  m_LocalPosition: {x: -1.126, y: 2, z: -0.5}
+  m_LocalPosition: {x: -1.25, y: 2, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
