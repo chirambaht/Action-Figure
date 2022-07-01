@@ -72,7 +72,7 @@ public class player : MonoBehaviour
 
     // Network Variables
     public const int port = 9022;
-    string my_ip = "192.168.1.102";
+    string server_ip = "192.168.1.102";
     Byte[] rec_data = new Byte[30];
 
     // UDP Variables
@@ -80,7 +80,6 @@ public class player : MonoBehaviour
 
     // TCP Variables
     TcpClient tcp_client;
-    TcpListener tcp_listener;
     Thread networkThread;
     NetworkStream tcp_stream;
 
@@ -287,7 +286,7 @@ public class player : MonoBehaviour
         name_choice = PlayerPrefs.GetString("name");
 
         mainPlayer.mass = mass_choice;
-        my_ip = PlayerPrefs.GetString("ip");
+        server_ip = PlayerPrefs.GetString("ip");
 
         bicep = bone_upper.transform;
         hand = bone_hand.transform;
@@ -342,10 +341,8 @@ public class player : MonoBehaviour
         // client.Client.ReceiveTimeout = 100;
 
         // TCP Variables
-        Debug.LogFormat("Started network thread. Listening on: {0}:{1}", my_ip, port);
+        // Debug.LogFormat("Started network thread. Listening on: {0}:{1}", server, port);
 
-        tcp_listener = new TcpListener(IPAddress.Parse(my_ip), port);
-        tcp_listener.Start();
         int waited_data_messages = 0;
         log_time = DateTime.Now;
         Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"),path);
@@ -364,8 +361,8 @@ public class player : MonoBehaviour
         {
             try
             {
-                Debug.Log("Waiting for a connection... ");
-                tcp_client = tcp_listener.AcceptTcpClient();
+                Debug.LogFormat("Connecting to: {0}:9022", server_ip);
+                tcp_client = new TcpClient(server_ip, 9022);
                 Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
 
                 tcp_stream = tcp_client.GetStream();
@@ -566,12 +563,6 @@ public class player : MonoBehaviour
             {
                 tcp_client.Close();
                 Debug.Log("TCP client closed");
-            }
-
-            if (tcp_listener.Server.IsBound)
-            {
-                tcp_listener.Stop();
-                Debug.Log("TCP listener stopped");
             }
 
             if (networkThread.IsAlive)
