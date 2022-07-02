@@ -21,7 +21,7 @@ public class player : MonoBehaviour
 	
     static int DATA_START_POINT = 3;
 
-	string path;
+	string path = "";
 
     static string[] combo_list = { "123001", "123010", "123011", "123100", "123101", "123110", "123111", "123000", "132001", "132010", "132011", "132100", "132101", "132110", "132111", "132000", "213001", "213010", "213011", "213100", "213101", "213110", "213111", "213000", "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000", "312001", "312010", "312011", "312100", "312101", "312110", "312111", "312000", "321001", "321010", "321011", "321100", "321101", "321110", "321111", "321000" };
     int combo_index = 0;
@@ -303,7 +303,7 @@ public class player : MonoBehaviour
         networkThread = new Thread(new ThreadStart(GetNetData));
         networkThread.IsBackground = true;
 	
-		path = EditorUtility.SaveFolderPanel("Choose where to save your log.", "", "Action Traced");
+		// path = EditorUtility.SaveFolderPanel("Choose where to save your log.", "", "Action Traced");
 		if (path.Length == 0){
 			path = "";
 		}
@@ -393,9 +393,7 @@ public class player : MonoBehaviour
                     int bbyytteess = tcp_stream.Read(rec_data, 0, rec_data.Length);
                     waited_data_messages = 0;
                     // print the received bytes
-                    // Debug.LogFormat( "I got {30} bytes:\n{0}-{1} {2}-{3} {4}-{5} || {6}-{7} {8}-{9} {10}-{11} {12}-{13} | {14}-{15} {16}-{17} {18}-{19} {20}-{21} | {22}-{23} {24}-{25} {26}-{27} {28}-{29}", rec_data[0], rec_data[1], rec_data[2], rec_data[3], rec_data[4], rec_data[5], rec_data[6], rec_data[7], rec_data[8], rec_data[9], rec_data[10], rec_data[11], rec_data[12], rec_data[13], rec_data[14], rec_data[15], rec_data[16], rec_data[17], rec_data[18], rec_data[19], rec_data[20], rec_data[21], rec_data[22], rec_data[23], rec_data[24], rec_data[25], rec_data[26], rec_data[27], rec_data[28], rec_data[29], bbyytteess );
                     float[] in_data = get_float_array_from_byte_array(rec_data);
-                    // Debug.LogFormat( "Floats: {0} {1} {2} | {3} {4} {5} {6} | {7} {8} {9} {10} | {11} {12} {13} {14}", in_data[0], in_data[1], in_data[2], in_data[3], in_data[4], in_data[5], in_data[6], in_data[7], in_data[8], in_data[9], in_data[10], in_data[11], in_data[12], in_data[13], in_data[14] );
 
                     // write packet to log file
                     log_packet(in_data);
