@@ -10,19 +10,19 @@ public class menu : MonoBehaviour
     public GameObject selected_sprite;
     public TMP_Dropdown gender_dropdown;
     public TMP_Dropdown hand_dropdown;
-    // public TMP_Dropdown ip_dropdown;
+
     public TMP_InputField participant_name;
     public TMP_InputField participant_mass;
     public TMP_InputField ip_input;
+
     List<string> genders = new List<string>(new string[] { "Male", "Female" });
     List<string> hands = new List<string>(new string[] { "Left", "Right" });
-    // List<string> ips = new List<string>();
-    // int					  how_far_have_i_moved = 0;
 
     public void exit()
     {
         Debug.Log("Game closed");
         Application.Quit();
+        
     }
 
     public void start_data_collection()
@@ -66,6 +66,8 @@ public class menu : MonoBehaviour
     {
         gender_dropdown.AddOptions(genders);
         hand_dropdown.AddOptions(hands);
+
+       ip_input.text = PlayerPrefs.GetString("ip");
 
         // foreach (var item in (Dns.GetHostEntry(Dns.GetHostName()).AddressList))
         // {

@@ -18,7 +18,7 @@ public class player : MonoBehaviour
     static int NUMBER_OF_DEVICES = 3;
     static int DATA_POINTS = 4;
 
-	
+	Vector3 touchStart;
     static int DATA_START_POINT = 3;
 
 	string path = "";
@@ -39,17 +39,18 @@ public class player : MonoBehaviour
     public float rate = 0.1f;
 
     public TextMeshProUGUI text_stats;
-    public TextMeshProUGUI debug_stats;
+    // public TextMeshProUGUI debug_stats;
 
     public Transform groundCheckTransform;
-    public Renderer handy_dandy;
-
      GameObject bone_upper;
      GameObject bone_lower;
      GameObject bone_hand;
      public GameObject side_camera;
+     int cam_count = 0;
+     int max_cams = 0;
+     Camera working_camera;
 
-    Transform shoulder, hand, bicep, forearm;
+    Transform  hand, bicep, forearm;
 
     float[,] new_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
     float[,] base_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
@@ -59,6 +60,7 @@ public class player : MonoBehaviour
 
     float horizontalInput;
     float verticalInput;
+
 
     float[] offsets = new float[4];
     Rigidbody mainPlayer;
@@ -75,11 +77,8 @@ public class player : MonoBehaviour
     string server_ip = "192.168.1.102";
     Byte[] rec_data = new Byte[30];
 
-    // UDP Variables
-    UdpClient udp_client;
-
     // TCP Variables
-    TcpClient tcp_client;
+    TcpClient tcp_client = new TcpClient();
     Thread networkThread;
     NetworkStream tcp_stream;
 
@@ -87,6 +86,16 @@ public class player : MonoBehaviour
     StreamWriter log_writer;
     DateTime log_time;
     // COrrects the quaternions base on the MPU direction
+
+    const float zoomOutMin = 3;
+    const float zoomOutMax = 0;
+    void zoom(float increment){
+        if (working_camera.transform.position.z + increment < zoomOutMax * -1 || working_camera.transform.position.z + increment > -1*zoomOutMin){
+            return;
+        }
+        
+        working_camera.transform.position = working_camera.transform.position + new Vector3(0, 0, increment);
+    }
     public Quaternion quaternion_manipulator(Quaternion incoming_quaternion)
     {
         Quaternion temp;
@@ -251,8 +260,12 @@ public class player : MonoBehaviour
         // Z_SCALER	  = z;
     }
 
+    
+
     void Start()
     {
+        max_cams = Camera.allCamerasCount;
+        working_camera = Camera.allCameras[0];
         mainPlayer = GetComponent<Rigidbody>();
         mass_choice = PlayerPrefs.GetInt("mass");
 
@@ -332,17 +345,7 @@ public class player : MonoBehaviour
     {
         // Initialize rec_data to 0
         Array.Clear(rec_data, 0, rec_data.Length);
-
-        // UDP Variables
-        // IPEndPoint me = new IPEndPoint(IPAddress.Parse("169.254.121.174"), port);
-        // IPEndPoint me = new IPEndPoint(IPAddress.Parse(my_ip), port);
-        // client = new UdpClient(me);
-        // client.Client.Blocking = false;
-        // client.Client.ReceiveTimeout = 100;
-
-        // TCP Variables
-        // Debug.LogFormat("Started network thread. Listening on: {0}:{1}", server, port);
-
+      
         int waited_data_messages = 0;
         log_time = DateTime.Now;
         Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"),path);
@@ -414,38 +417,6 @@ public class player : MonoBehaviour
                         break;
                     }
                 }
-
-                // UDP Work
-                // byte [] data = new byte[1024];
-
-                // for (var a = 0; a < NUMBER_OF_DEVICES * DATA_POINTS; a++){
-                //     data[a] = rec_data[DATA_START_POINT + a];
-                // }
-
-                // // encode UTF8-coded bytes to text format
-                // string text = Encoding.UTF8.GetString(data);
-
-                // string[] devices = text.Split(':');
-                // float t;
-
-                // for (var dev = 0; dev < NUMBER_OF_DEVICES; dev++)
-                // {
-                //     strin{
-                //         t = float.Parse(single_device[val],
-                //         System.Globalization.CultureInfo.InvariantCulture);
-                //         raw_values[dev, val] = t;
-                //         new_values[dev, val] = value_clamper(t);
-                //     }
-                // }g[] single_device = devices[dev].Split(',');
-
-                //     for (var val = 0; val < DATA_POINTS; val++)
-                //     {
-                //         t = float.Parse(single_device[val],
-                //         System.Globalization.CultureInfo.InvariantCulture);
-                //         raw_values[dev, val] = t;
-                //         new_values[dev, val] = value_clamper(t);
-                //     }
-                // }
             }
             catch (Exception err)
             {
@@ -453,9 +424,6 @@ public class player : MonoBehaviour
             }
             finally
             {
-                // udp_client.Close();
-                // Debug.Log( "UDP client closed" );
-
                 // if( tcp_stream != null ) {
                 // 	tcp_stream.Close();
                 // 	tcp_stream.Dispose();
@@ -473,14 +441,6 @@ public class player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {	
-		if (Input.GetMouseButtonDown(0)) {
-			Debug.Log("Mouse button pressed");
-			Debug.Log("Mouse position: " + Input.mousePosition);
-			Debug.Log("Screen position: " + Camera.main.ScreenToWorldPoint(Input.mousePosition));
-			// if mouse clicks on bone_upper, then set the target to the bone_upper
-
-		
-		}
         if (Input.GetKeyDown(KeyCode.R))
         {
             // Print the rotation between forarm and bicep
@@ -509,22 +469,19 @@ public class player : MonoBehaviour
             }
         }
 
+        
+
         bicep.transform.rotation = Quaternion.Lerp(bicep.transform.rotation, new Quaternion(placed_values[0, DATA_PACKET_X] * X_SCALER, placed_values[0, DATA_PACKET_Y] * Y_SCALER, placed_values[0, DATA_PACKET_Z] * Z_SCALER, placed_values[0, DATA_PACKET_W] * W_SCALER), rate);
         forearm.transform.rotation = Quaternion.Lerp(forearm.transform.rotation, new Quaternion(placed_values[1, DATA_PACKET_X] * X_SCALER, placed_values[1, DATA_PACKET_Y] * Y_SCALER, placed_values[1, DATA_PACKET_Z] * Z_SCALER, placed_values[1, DATA_PACKET_W] * W_SCALER), rate);
         hand.transform.rotation = Quaternion.Lerp(hand.transform.rotation, new Quaternion(placed_values[2, DATA_PACKET_X] * X_SCALER, placed_values[2, DATA_PACKET_Y] * Y_SCALER, placed_values[2, DATA_PACKET_Z] * Z_SCALER, placed_values[2, DATA_PACKET_W] * W_SCALER), rate);
 
-        // float a1 = Quaternion.Angle( shoulder.rotation, forearm.rotation );
         float a2 = Quaternion.Angle(bicep.rotation, forearm.rotation);
         float a3 = Quaternion.Angle(forearm.rotation, hand.rotation);
 
-        manipulated_values = quaternion_to_array(bone_upper, bone_lower, bone_hand);
-
-        text_stats.text =
-            String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3);
-        debug_stats.text = String.Format(
-            "Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
-            float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values),
-            float_array_to_string(manipulated_values), float_array_to_string(placed_values));
+        text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3);
+        // debug_stats.text = String.Format(
+        //     "Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
+        //     float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values),
     }
 
     void FixedUpdate()
