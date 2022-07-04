@@ -12,524 +12,436 @@ using TMPro;
 using UnityEngine.UI;
 using System.Globalization;
 
-public class player : MonoBehaviour
-{
-    // Start is called before the first frame update
-    static int NUMBER_OF_DEVICES = 3;
-    static int DATA_POINTS = 4;
+public class player : MonoBehaviour {
+	// Start is called before the first frame update
+	static int NUMBER_OF_DEVICES = 3;
+	static int DATA_POINTS		 = 4;
 
-	Vector3 touchStart;
-    static int DATA_START_POINT = 3;
+	Vector3	   touchStart;
+	static int DATA_START_POINT = 3;
 
 	string path = "";
 
-    static string[] combo_list = { "123001", "123010", "123011", "123100", "123101", "123110", "123111", "123000", "132001", "132010", "132011", "132100", "132101", "132110", "132111", "132000", "213001", "213010", "213011", "213100", "213101", "213110", "213111", "213000", "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000", "312001", "312010", "312011", "312100", "312101", "312110", "312111", "312000", "321001", "321010", "321011", "321100", "321101", "321110", "321111", "321000" };
-    int combo_index = 0;
+	static string[] combo_list = { "123001", "123010", "123011", "123100", "123101", "123110", "123111", "123000", "132001", "132010", "132011", "132100", "132101", "132110", "132111", "132000", "213001", "213010", "213011", "213100", "213101", "213110", "213111", "213000", "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000", "312001", "312010", "312011", "312100", "312101", "312110", "312111", "312000", "321001", "321010", "321011", "321100", "321101", "321110", "321111", "321000" };
+	int combo_index			   = 0;
 
-    public int DATA_PACKET_W = 0;
-    public int DATA_PACKET_X = 2;
-    public int DATA_PACKET_Y = 3;
-    public int DATA_PACKET_Z = 1;
+	public int DATA_PACKET_W = 0;
+	public int DATA_PACKET_X = 2;
+	public int DATA_PACKET_Y = 3;
+	public int DATA_PACKET_Z = 1;
 
-    public int W_SCALER = 1;
-    public int X_SCALER = -1;
-    public int Y_SCALER = -1;
-    public int Z_SCALER = 1;
+	public int W_SCALER = 1;
+	public int X_SCALER = -1;
+	public int Y_SCALER = -1;
+	public int Z_SCALER = 1;
 
-    public float rate = 0.1f;
+	public float rate = 0.1f;
 
-    public TextMeshProUGUI text_stats;
-    // public TextMeshProUGUI debug_stats;
+	public TextMeshProUGUI text_stats;
+	// public TextMeshProUGUI debug_stats;
 
-    public Transform groundCheckTransform;
-     GameObject bone_upper;
-     GameObject bone_lower;
-     GameObject bone_hand;
-     public GameObject side_camera;
-     int cam_count = 0;
-     int max_cams = 0;
-     Camera working_camera;
+	public Transform  groundCheckTransform;
+	GameObject		  bone_upper;
+	GameObject		  bone_lower;
+	GameObject		  bone_hand;
+	public GameObject side_camera;
+	int				  max_cams = 0;
+	Camera			  working_camera;
 
-    Transform  hand, bicep, forearm;
+	Transform hand, bicep, forearm;
 
-    float[,] new_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
-    float[,] base_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
-    float[,] raw_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
-    float[,] placed_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
-    float[,] manipulated_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+	float[,] new_values			= new float[NUMBER_OF_DEVICES, DATA_POINTS];
+	float[,] base_values		= new float[NUMBER_OF_DEVICES, DATA_POINTS];
+	float[,] raw_values			= new float[NUMBER_OF_DEVICES, DATA_POINTS];
+	float[,] placed_values		= new float[NUMBER_OF_DEVICES, DATA_POINTS];
+	float[,] manipulated_values = new float[NUMBER_OF_DEVICES, DATA_POINTS];
 
-    float horizontalInput;
-    float verticalInput;
+	float horizontalInput;
+	float verticalInput;
 
+	float[] offsets = new float[4];
+	Rigidbody mainPlayer;
 
-    float[] offsets = new float[4];
-    Rigidbody mainPlayer;
+	// Stored variables
+	string hand_choice;
+	string gender_choice;
+	string name_choice;
+	string ip_choice;
+	int	   mass_choice;
 
-    // Stored variables
-    string hand_choice;
-    string gender_choice;
-    string name_choice;
-    string ip_choice;
-    int mass_choice;
+	// Network Variables
+	public const int port	   = 9022;
+	string			 server_ip = "192.168.1.102";
+	Byte[] rec_data			   = new Byte[30];
 
-    // Network Variables
-    public const int port = 9022;
-    string server_ip = "192.168.1.102";
-    Byte[] rec_data = new Byte[30];
+	// TCP Variables
+	TcpClient	  tcp_client = new TcpClient();
+	Thread		  networkThread;
+	NetworkStream tcp_stream;
 
-    // TCP Variables
-    TcpClient tcp_client = new TcpClient();
-    Thread networkThread;
-    NetworkStream tcp_stream;
+	// Logging Variables
+	StreamWriter log_writer;
+	DateTime	 log_time;
+	// COrrects the quaternions base on the MPU direction
 
-    // Logging Variables
-    StreamWriter log_writer;
-    DateTime log_time;
-    // COrrects the quaternions base on the MPU direction
+	const float zoomOutMin = 3;
+	const float zoomOutMax = 0;
+	void		zoom( float increment ) {
+			   if( working_camera.transform.position.z + increment < zoomOutMax * -1 || working_camera.transform.position.z + increment > -1 * zoomOutMin ) {
+				   return;
+		   }
 
-    const float zoomOutMin = 3;
-    const float zoomOutMax = 0;
-    void zoom(float increment){
-        if (working_camera.transform.position.z + increment < zoomOutMax * -1 || working_camera.transform.position.z + increment > -1*zoomOutMin){
-            return;
-        }
-        
-        working_camera.transform.position = working_camera.transform.position + new Vector3(0, 0, increment);
-    }
-    public Quaternion quaternion_manipulator(Quaternion incoming_quaternion)
-    {
-        Quaternion temp;
-        temp.w = incoming_quaternion.w;
-        temp.x = incoming_quaternion.y;
-        temp.z = incoming_quaternion.z;
-        temp.y = incoming_quaternion.x * -1;
+			   working_camera.transform.position = working_camera.transform.position + new Vector3( 0, 0, increment );
+	}
+	public Quaternion quaternion_manipulator( Quaternion incoming_quaternion ) {
+		Quaternion temp;
+		temp.w = incoming_quaternion.w;
+		temp.x = incoming_quaternion.y;
+		temp.z = incoming_quaternion.z;
+		temp.y = incoming_quaternion.x * -1;
 
-        return temp.normalized;
-    }
+		return temp.normalized;
+	}
 
-    public float[] quaternion_to_array(Quaternion incoming_quaternion)
-    {
-        float[] outer = new float[DATA_POINTS];
-        outer[0] = incoming_quaternion.w;
-        outer[1] = incoming_quaternion.x;
-        outer[2] = incoming_quaternion.y;
-        outer[3] = incoming_quaternion.z;
-        return outer;
-    }
+	public float[] quaternion_to_array( Quaternion incoming_quaternion ) {
+		float[] outer = new float[DATA_POINTS];
+		outer[0]	  = incoming_quaternion.w;
+		outer[1]	  = incoming_quaternion.x;
+		outer[2]	  = incoming_quaternion.y;
+		outer[3]	  = incoming_quaternion.z;
+		return outer;
+	}
 
-    private int get_int_from_byte(Byte b1, Byte b2)
-    {
-        return ((b2 << 8) + b1);
-    }
+	private int get_int_from_byte( Byte b1, Byte b2 ) {
+		return ( ( b2 << 8 ) + b1 );
+	}
 
-    public void log_packet(float[] packet)
-    {
-        string log_string = "";
-        for (int i = 0; i < packet.Length; i++)
-        {
-            log_string += packet[i].ToString() + "\t";
-        }
-        log_writer.WriteLine(log_string);
-    }
+	public void log_packet( float[] packet ) {
+		string log_string = "";
+		for( int i = 0; i < packet.Length; i++ ) {
+			log_string += packet[i].ToString() + "\t";
+		}
+		log_writer.WriteLine( log_string );
+	}
 
-    public float[] get_float_array_from_byte_array(Byte[] byte_array, int length = 30, float factor = 10000)
-    {
-        int l = length / 2; // Number of integers in the array
-        float[] float_array = new float[l];
-        for (int i = 0; i < DATA_START_POINT; i++)
-        {
-            float_array[i] = BitConverter.ToInt16(byte_array, i * 2);
-        }
+	public float[] get_float_array_from_byte_array( Byte[] byte_array, int length = 30, float factor = 10000 ) {
+		int l				= length / 2; // Number of integers in the array
+		float[] float_array = new float[l];
+		for( int i = 0; i < DATA_START_POINT; i++ ) {
+			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 );
+		}
 
-        for (int i = DATA_START_POINT; i < l; i++)
-        {
-            float_array[i] = BitConverter.ToInt16(byte_array, i * 2) / (factor);
-            // float_array[i] = get_int_from_byte( byte_array[i * 2], byte_array[i * ( 2 + 1 )] );
-        }
-        return float_array;
-    }
+		for( int i = DATA_START_POINT; i < l; i++ ) {
+			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 ) / ( factor );
+			// float_array[i] = get_int_from_byte( byte_array[i * 2], byte_array[i * ( 2 + 1 )] );
+		}
+		return float_array;
+	}
 
-    public float[,] quaternion_to_array(GameObject a, GameObject b, GameObject c)
-    {
-        float[,] outer = new float[NUMBER_OF_DEVICES, DATA_POINTS];
-        float[] data = new float[DATA_POINTS];
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-        {
-            if (i == 0)
-            {
-                data = quaternion_to_array(a.transform.rotation);
-            }
-            else if (i == 1)
-            {
-                data = quaternion_to_array(b.transform.rotation);
-            }
-            else
-            {
-                data = quaternion_to_array(c.transform.rotation);
-            }
-            for (int j = 0; j < DATA_POINTS; j++)
-            {
-                outer[i, j] = data[j];
-            }
-        }
-        return outer;
-    }
+	public float[,] quaternion_to_array( GameObject a, GameObject b, GameObject c ) {
+		float[,] outer = new float[NUMBER_OF_DEVICES, DATA_POINTS];
+		float[] data = new float[DATA_POINTS];
+		for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
+			if( i == 0 ) {
+				data = quaternion_to_array( a.transform.rotation );
+			} else if( i == 1 ) {
+				data = quaternion_to_array( b.transform.rotation );
+			} else {
+				data = quaternion_to_array( c.transform.rotation );
+			}
+			for( int j = 0; j < DATA_POINTS; j++ ) {
+				outer[i, j] = data[j];
+			}
+		}
+		return outer;
+	}
 
-    public string float_array_to_string(float[,] incoming_floats)
-    {
-        string temp_string = "";
-        for (int outer = 0; outer < NUMBER_OF_DEVICES; outer++)
-        {
-            for (int i = 0; i < DATA_POINTS; i++)
-            {
-                temp_string = temp_string + Math.Round(incoming_floats[outer, i], 3).ToString() +
-                    ((i == DATA_POINTS - 1) ? "\n" : "    ");
-            }
-        }
-        return temp_string;
-    }
+	public string float_array_to_string( float[,] incoming_floats ) {
+		string temp_string = "";
+		for( int outer = 0; outer < NUMBER_OF_DEVICES; outer++ ) {
+			for( int i = 0; i < DATA_POINTS; i++ ) {
+				temp_string = temp_string + Math.Round( incoming_floats[outer, i], 3 ).ToString() +
+					( ( i == DATA_POINTS - 1 ) ? "\n" : "    " );
+			}
+		}
+		return temp_string;
+	}
 
-    public void t_pose()
-    {
-        // Recenters according to T-Pose
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-        {
-            for (int j = 0; j < DATA_POINTS; j++)
-            {
-                base_values[i, j] = 0 - new_values[i, j];
-            }
-        }
-    }
+	public void t_pose() {
+		// Recenters according to T-Pose
+		for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
+			for( int j = 0; j < DATA_POINTS; j++ ) {
+				base_values[i, j] = 0 - new_values[i, j];
+			}
+		}
+	}
 
-    public void next_combo(bool forward = true)
-    {
-        if (forward)
-        {
-            combo_index++;
-        }
-        else
-        {
-            combo_index--;
-        }
+	public void next_combo( bool forward = true ) {
+		if( forward ) {
+			combo_index++;
+		} else {
+			combo_index--;
+		}
 
-        if (combo_index > combo_list.Length - 1)
-        {
-            combo_index = 0;
-        }
-        else if (combo_index < 0)
-        {
-            combo_index = combo_list.Length - 1;
-        }
+		if( combo_index > combo_list.Length - 1 ) {
+			combo_index = 0;
+		} else if( combo_index < 0 ) {
+			combo_index = combo_list.Length - 1;
+		}
 
-        string combo = combo_list[combo_index];
-        Debug.LogFormat("Combo: {0}", combo);
+		string combo = combo_list[combo_index];
+		Debug.LogFormat( "Combo: {0}", combo );
 
-        int x = int.Parse(combo.Substring(3, 1));
-        int y = int.Parse(combo.Substring(4, 1));
-        int z = int.Parse(combo.Substring(5, 1));
+		int x = int.Parse( combo.Substring( 3, 1 ) );
+		int y = int.Parse( combo.Substring( 4, 1 ) );
+		int z = int.Parse( combo.Substring( 5, 1 ) );
 
-        if (x == 0)
-        {
-            X_SCALER = -1;
-        }
-        else
-        {
-            X_SCALER = 1;
-        }
-        if (y == 0)
-        {
-            Y_SCALER = -1;
-        }
-        else
-        {
-            Y_SCALER = 1;
-        }
-        if (z == 0)
-        {
-            Z_SCALER = -1;
-        }
-        else
-        {
-            Z_SCALER = 1;
-        }
-        DATA_PACKET_X = int.Parse(combo.Substring(0, 1));
-        DATA_PACKET_Y = int.Parse(combo.Substring(1, 1));
-        DATA_PACKET_Z = int.Parse(combo.Substring(2, 1));
-        // X_SCALER	  = x;
-        // Y_SCALER	  = y;
-        // Z_SCALER	  = z;
-    }
+		if( x == 0 ) {
+			X_SCALER = -1;
+		} else {
+			X_SCALER = 1;
+		}
+		if( y == 0 ) {
+			Y_SCALER = -1;
+		} else {
+			Y_SCALER = 1;
+		}
+		if( z == 0 ) {
+			Z_SCALER = -1;
+		} else {
+			Z_SCALER = 1;
+		}
+		DATA_PACKET_X = int.Parse( combo.Substring( 0, 1 ) );
+		DATA_PACKET_Y = int.Parse( combo.Substring( 1, 1 ) );
+		DATA_PACKET_Z = int.Parse( combo.Substring( 2, 1 ) );
+		// X_SCALER	  = x;
+		// Y_SCALER	  = y;
+		// Z_SCALER	  = z;
+	}
 
-    
+	void Start() {
+		max_cams	   = Camera.allCamerasCount;
+		working_camera = Camera.allCameras[0];
+		mainPlayer	   = GetComponent<Rigidbody>();
+		mass_choice	   = PlayerPrefs.GetInt( "mass" );
 
-    void Start()
-    {
-        max_cams = Camera.allCamerasCount;
-        working_camera = Camera.allCameras[0];
-        mainPlayer = GetComponent<Rigidbody>();
-        mass_choice = PlayerPrefs.GetInt("mass");
+		gender_choice = PlayerPrefs.GetString( "gender" );
 
-        gender_choice = PlayerPrefs.GetString("gender");
+		// if (gender_choice == "Male"){
 
-        // if (gender_choice == "Male"){
+		// } else{
 
-        // } else{
+		// }
 
-        // }
+		hand_choice = PlayerPrefs.GetString( "hand" );
+		if( hand_choice == "Left" ) {
+			bone_upper = GameObject.Find( "mixamorig:LeftArm" );
+			bone_lower = GameObject.Find( "mixamorig:LeftForeArm" );
+			bone_hand  = GameObject.Find( "mixamorig:LeftHand" );
 
-        hand_choice = PlayerPrefs.GetString("hand");
-        if (hand_choice == "Left")
-        {
-            bone_upper = GameObject.Find("mixamorig:LeftArm");
-            bone_lower = GameObject.Find("mixamorig:LeftForeArm");
-            bone_hand = GameObject.Find("mixamorig:LeftHand");
+			side_camera.transform.position = new Vector3( 1.25f, 2f, -0.5f );
+			side_camera.transform.rotation = Quaternion.Euler( 0, -45f, 0 );
+		} else {
+			bone_upper = GameObject.Find( "mixamorig:RightArm" );
+			bone_lower = GameObject.Find( "mixamorig:RightForeArm" );
+			bone_hand  = GameObject.Find( "mixamorig:RightHand" );
 
-			side_camera.transform.position = new Vector3(1.25f, 2f, -0.5f);
-			side_camera.transform.rotation = Quaternion.Euler(0, -45f, 0);
-        }
-        else
-        {
-            bone_upper = GameObject.Find("mixamorig:RightArm");
-            bone_lower = GameObject.Find("mixamorig:RightForeArm");
-            bone_hand = GameObject.Find("mixamorig:RightHand");
+			side_camera.transform.position = new Vector3( -1.25f, 2f, -0.5f );
+			side_camera.transform.rotation = Quaternion.Euler( 0, 45f, 0 );
+		}
+		name_choice = PlayerPrefs.GetString( "name" );
 
-			side_camera.transform.position = new Vector3(-1.25f, 2f, -0.5f);
-			side_camera.transform.rotation = Quaternion.Euler(0, 45f, 0);
-        }
-        name_choice = PlayerPrefs.GetString("name");
+		mainPlayer.mass = mass_choice;
+		server_ip		= PlayerPrefs.GetString( "ip" );
 
-        mainPlayer.mass = mass_choice;
-        server_ip = PlayerPrefs.GetString("ip");
+		bicep	= bone_upper.transform;
+		hand	= bone_hand.transform;
+		forearm = bone_lower.transform;
+		// All game objects to be assigned in the properties of the model.
 
-        bicep = bone_upper.transform;
-        hand = bone_hand.transform;
-        forearm = bone_lower.transform;
-        // All game objects to be assigned in the properties of the model.
+		// udp_client = new UdpClient();
+		Array.Clear( new_values, 0, 2 );
+		Array.Clear( base_values, 0, 2 );
+		Array.Clear( raw_values, 0, 2 );
+		Array.Clear( placed_values, 0, 2 );
+		Array.Clear( manipulated_values, 0, 2 );
 
-        // udp_client = new UdpClient();
-        Array.Clear(new_values, 0, 2);
-        Array.Clear(base_values, 0, 2);
-        Array.Clear(raw_values, 0, 2);
-        Array.Clear(placed_values, 0, 2);
-        Array.Clear(manipulated_values, 0, 2);
+		networkThread			   = new Thread( new ThreadStart( GetNetData ) );
+		networkThread.IsBackground = true;
 
-        networkThread = new Thread(new ThreadStart(GetNetData));
-        networkThread.IsBackground = true;
-	
 		// path = EditorUtility.SaveFolderPanel("Choose where to save your log.", "", "Action Traced");
-		if (path.Length == 0){
+		path = Application.persistentDataPath.ToString();
+		if( path.Length == 0 ) {
 			path = "";
 		}
-        networkThread.Start();
-    }
+		networkThread.Start();
+	}
 
-    /** Returns a wrapped around float between -1 and 1.*/
-    public float value_clamper(float incoming_number)
-    {
-        float max = 1f, min = -1f, val = incoming_number;
-        if (incoming_number >= max)
-        {
-            float excess = incoming_number % 1;
-            val = -1 + excess;
-        }
-        else if (incoming_number <= min)
-        {
-            float excess = incoming_number % 1;
-            val = excess;
-        }
+	/** Returns a wrapped around float between -1 and 1.*/
+	public float value_clamper( float incoming_number ) {
+		float max = 1f, min = -1f, val = incoming_number;
+		if( incoming_number >= max ) {
+			float excess = incoming_number % 1;
+			val			 = -1 + excess;
+		} else if( incoming_number <= min ) {
+			float excess = incoming_number % 1;
+			val			 = excess;
+		}
 
-        return val;
-    }
+		return val;
+	}
 
-    void GetNetData()
-    {
-        // Initialize rec_data to 0
-        Array.Clear(rec_data, 0, rec_data.Length);
-      
-        int waited_data_messages = 0;
-        log_time = DateTime.Now;
-        Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"),path);
-        string file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
+	void GetNetData() {
+		// Initialize rec_data to 0
+		Array.Clear( rec_data, 0, rec_data.Length );
 
-        try
-        {
-            log_writer = new(file_name_for_log, append: true);
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.Message);
-        }
+		int waited_data_messages = 0;
+		log_time				 = DateTime.Now;
+		Debug.LogFormat( "Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString( "yyyyMMdd_HHmmss" ), path );
+		string file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString( "yyyyMMdd_HHmmss" ) + ".act";
 
-        while (true)
-        {
-            try
-            {
-                Debug.LogFormat("Connecting to: {0}:9022", server_ip);
-                tcp_client = new TcpClient(server_ip, 9022);
-                Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
+		try {
+			log_writer = new( file_name_for_log, append: true );
+		} catch( Exception e ) {
+			Debug.Log( e.Message );
+		}
 
-                tcp_stream = tcp_client.GetStream();
+		while( true ) {
+			try {
+				Debug.LogFormat( "Connecting to: {0}:9022", server_ip );
+				tcp_client = new TcpClient( server_ip, 9022 );
+				Debug.LogFormat( "Connected to client {0}", tcp_client.Client.RemoteEndPoint );
 
-                while (tcp_client.Connected)
-                {
-                    if (!tcp_stream.DataAvailable)
-                    {
-                        waited_data_messages++;
-                        if (waited_data_messages > 60)
-                        {
-                            waited_data_messages = 0;
-                            Debug.Log("No data received from client.");
-                            break;
-                        }
-                        if (waited_data_messages < 30)
-                        {
-                            Thread.Sleep(500);
-                        }
-                        else
-                        {
-                            Thread.Sleep(1000);
-                            Debug.LogFormat("Only {0}s left to for data", 60 - waited_data_messages);
-                        }
-                        continue;
-                    }
+				tcp_stream = tcp_client.GetStream();
 
-                    int bbyytteess = tcp_stream.Read(rec_data, 0, rec_data.Length);
-                    waited_data_messages = 0;
-                    // print the received bytes
-                    float[] in_data = get_float_array_from_byte_array(rec_data);
+				while( tcp_client.Connected ) {
+					if( !tcp_stream.DataAvailable ) {
+						waited_data_messages++;
+						if( waited_data_messages > 60 ) {
+							waited_data_messages = 0;
+							Debug.Log( "No data received from client." );
+							break;
+						}
+						if( waited_data_messages < 30 ) {
+							Thread.Sleep( 500 );
+						} else {
+							Thread.Sleep( 1000 );
+							Debug.LogFormat( "Only {0}s left to for data", 60 - waited_data_messages );
+						}
+						continue;
+					}
 
-                    // write packet to log file
-                    log_packet(in_data);
+					int bbyytteess		 = tcp_stream.Read( rec_data, 0, rec_data.Length );
+					waited_data_messages = 0;
+					// print the received bytes
+					float[] in_data = get_float_array_from_byte_array( rec_data );
 
-                    for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-                    {
-                        for (int j = 0; j < DATA_POINTS; j++)
-                        {
-                            raw_values[i, j] = in_data[(i * DATA_POINTS) + j + DATA_START_POINT];
-                            new_values[i, j] = value_clamper(in_data[(i * DATA_POINTS) + j + DATA_START_POINT]);
-                        }
-                    }
+					// write packet to log file
+					log_packet( in_data );
 
-                    // check if tcp client is still connected
-                    if (!tcp_client.Connected)
-                    {
-                        Debug.Log("Client disconnected.");
-                        break;
-                    }
-                }
-            }
-            catch (Exception err)
-            {
-                err.ToString();
-            }
-            finally
-            {
-                // if( tcp_stream != null ) {
-                // 	tcp_stream.Close();
-                // 	tcp_stream.Dispose();
-                // 	Debug.Log( "TCP stream closed" );
-                // }
+					for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
+						for( int j = 0; j < DATA_POINTS; j++ ) {
+							raw_values[i, j] = in_data[( i * DATA_POINTS ) + j + DATA_START_POINT];
+							new_values[i, j] = value_clamper( in_data[( i * DATA_POINTS ) + j + DATA_START_POINT] );
+						}
+					}
 
-                // if( tcp_client.Connected ) {
-                // 	tcp_client.Close();
-                // 	Debug.Log( "TCP client closed" );
-                // }
-            }
-        }
-    }
+					// check if tcp client is still connected
+					if( !tcp_client.Connected ) {
+						Debug.Log( "Client disconnected." );
+						break;
+					}
+				}
+			} catch( Exception err ) {
+				err.ToString();
+			} finally {
+				// if( tcp_stream != null ) {
+				// 	tcp_stream.Close();
+				// 	tcp_stream.Dispose();
+				// 	Debug.Log( "TCP stream closed" );
+				// }
 
-    // Update is called once per frame
-    void Update()
-    {	
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            // Print the rotation between forarm and bicep
-        }
-        if (Input.GetKeyDown(KeyCode.H))
-        {
-            // Change combination to next one
-            next_combo();
-        }
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            // Change combination to previous one
-            next_combo(false);
-        }
+				// if( tcp_client.Connected ) {
+				// 	tcp_client.Close();
+				// 	Debug.Log( "TCP client closed" );
+				// }
+			}
+		}
+	}
 
-        if (Input.GetKeyDown(KeyCode.T))
-        {
-            t_pose();
-        }
+	// Update is called once per frame
+	void Update() {
+		if( Input.GetKeyDown( KeyCode.R ) ) {
+			// Print the rotation between forarm and bicep
+		}
+		if( Input.GetKeyDown( KeyCode.H ) ) {
+			// Change combination to next one
+			next_combo();
+		}
+		if( Input.GetKeyDown( KeyCode.G ) ) {
+			// Change combination to previous one
+			next_combo( false );
+		}
 
-        for (int i = 0; i < NUMBER_OF_DEVICES; i++)
-        {
-            for (int j = 0; j < DATA_POINTS; j++)
-            {
-                placed_values[i, j] = base_values[i, j] + new_values[i, j];
-            }
-        }
+		if( Input.GetKeyDown( KeyCode.T ) ) {
+			t_pose();
+		}
 
-        
+		for( int i = 0; i < NUMBER_OF_DEVICES; i++ ) {
+			for( int j = 0; j < DATA_POINTS; j++ ) {
+				placed_values[i, j] = base_values[i, j] + new_values[i, j];
+			}
+		}
 
-        bicep.transform.rotation = Quaternion.Lerp(bicep.transform.rotation, new Quaternion(placed_values[0, DATA_PACKET_X] * X_SCALER, placed_values[0, DATA_PACKET_Y] * Y_SCALER, placed_values[0, DATA_PACKET_Z] * Z_SCALER, placed_values[0, DATA_PACKET_W] * W_SCALER), rate);
-        forearm.transform.rotation = Quaternion.Lerp(forearm.transform.rotation, new Quaternion(placed_values[1, DATA_PACKET_X] * X_SCALER, placed_values[1, DATA_PACKET_Y] * Y_SCALER, placed_values[1, DATA_PACKET_Z] * Z_SCALER, placed_values[1, DATA_PACKET_W] * W_SCALER), rate);
-        hand.transform.rotation = Quaternion.Lerp(hand.transform.rotation, new Quaternion(placed_values[2, DATA_PACKET_X] * X_SCALER, placed_values[2, DATA_PACKET_Y] * Y_SCALER, placed_values[2, DATA_PACKET_Z] * Z_SCALER, placed_values[2, DATA_PACKET_W] * W_SCALER), rate);
+		bicep.transform.rotation   = Quaternion.Lerp( bicep.transform.rotation, new Quaternion( placed_values[0, DATA_PACKET_X] * X_SCALER, placed_values[0, DATA_PACKET_Y] * Y_SCALER, placed_values[0, DATA_PACKET_Z] * Z_SCALER, placed_values[0, DATA_PACKET_W] * W_SCALER ), rate );
+		forearm.transform.rotation = Quaternion.Lerp( forearm.transform.rotation, new Quaternion( placed_values[1, DATA_PACKET_X] * X_SCALER, placed_values[1, DATA_PACKET_Y] * Y_SCALER, placed_values[1, DATA_PACKET_Z] * Z_SCALER, placed_values[1, DATA_PACKET_W] * W_SCALER ), rate );
+		hand.transform.rotation	   = Quaternion.Lerp( hand.transform.rotation, new Quaternion( placed_values[2, DATA_PACKET_X] * X_SCALER, placed_values[2, DATA_PACKET_Y] * Y_SCALER, placed_values[2, DATA_PACKET_Z] * Z_SCALER, placed_values[2, DATA_PACKET_W] * W_SCALER ), rate );
 
-        float a2 = Quaternion.Angle(bicep.rotation, forearm.rotation);
-        float a3 = Quaternion.Angle(forearm.rotation, hand.rotation);
+		float a2 = Quaternion.Angle( bicep.rotation, forearm.rotation );
+		float a3 = Quaternion.Angle( forearm.rotation, hand.rotation );
 
-        text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3);
-        // debug_stats.text = String.Format(
-        //     "Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
-        //     float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values),
-    }
+		text_stats.text = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3 );
+		// debug_stats.text = String.Format(
+		//     "Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
+		//     float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values),
+	}
 
-    void FixedUpdate()
-    {
-        if (Physics.OverlapSphere(groundCheckTransform.position, 0.1f).Length <= 1)
-        {
-            return;
-        }
-    }
+	void FixedUpdate() {
+		if( Physics.OverlapSphere( groundCheckTransform.position, 0.1f ).Length <= 1 ) {
+			return;
+		}
+	}
 
-    void OnApplicationQuit()
-    {
-        try
-        {
-            Debug.Log("Closing everything...");
+	void OnApplicationQuit() {
+		try {
+			Debug.Log( "Closing everything..." );
 
-            // udp_client.Close();
-            // Debug.Log( "UDP client closed" );
+			// udp_client.Close();
+			// Debug.Log( "UDP client closed" );
 
-            if (log_writer != null)
-            {
-                log_writer.Close();
-                Debug.Log("Log writer closed");
-            }
+			if( log_writer != null ) {
+				log_writer.Close();
+				Debug.Log( "Log writer closed" );
+			}
 
-            if (tcp_stream != null)
-            {
-                tcp_stream.Close();
-                tcp_stream.Dispose();
-                Debug.Log("TCP stream closed");
-            }
+			if( tcp_stream != null ) {
+				tcp_stream.Close();
+				tcp_stream.Dispose();
+				Debug.Log( "TCP stream closed" );
+			}
 
-            if (tcp_client.Connected)
-            {
-                tcp_client.Close();
-                Debug.Log("TCP client closed");
-            }
+			if( tcp_client.Connected ) {
+				tcp_client.Close();
+				Debug.Log( "TCP client closed" );
+			}
 
-            if (networkThread.IsAlive)
-            {
-                networkThread.Abort();
-                Debug.Log("Network thread stopped");
-            }
-            Debug.Log("Done");
-        }
-        catch (Exception e)
-        {
-            Debug.LogException(e, this);
-        }
-    }
+			if( networkThread.IsAlive ) {
+				networkThread.Abort();
+				Debug.Log( "Network thread stopped" );
+			}
+			Debug.Log( "Done" );
+		} catch( Exception e ) {
+			Debug.LogException( e, this );
+		}
+	}
 }
