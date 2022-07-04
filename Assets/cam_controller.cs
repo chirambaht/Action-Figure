@@ -18,18 +18,22 @@ public class cam_controller : MonoBehaviour {
         working_camera = Camera.allCameras[camera_index];
     }
 
+    public void swap_camera(){
+         if (camera_index < camera_count - 1){
+            camera_index++;
+        }
+        else{
+            camera_index = 0;
+        }
+        working_camera = Camera.allCameras[camera_index];
+        Debug.LogFormat("Camera changed to {0}/{1}:{2}", camera_index+1, camera_count, working_camera.name);
+    }
+
 	// Update is called once per frame
 	void Update () {
          if (Input.GetKeyDown(KeyCode.C))
         {
-            if (camera_index < camera_count - 1){
-                camera_index++;
-            }
-            else{
-                camera_index = 0;
-            }
-            working_camera = Camera.allCameras[camera_index];
-            Debug.LogFormat("Camera changed to {0}/{1}:{2}", camera_index+1, camera_count, working_camera.name);
+           swap_camera();
             
         }
 
@@ -67,5 +71,9 @@ public class cam_controller : MonoBehaviour {
 
     void zoom(float increment){
         working_camera.orthographicSize = Mathf.Clamp(working_camera.orthographicSize - increment, zoomOutMin, zoomOutMax);
+    }
+
+    public void Ive_been_touched(){
+        Debug.Log("I've been touched");
     }
 }
