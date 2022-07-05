@@ -38,7 +38,7 @@ public class player : MonoBehaviour {
 	public float rate = 0.1f;
 
 	public TextMeshProUGUI text_stats;
-	// public TextMeshProUGUI debug_stats;
+	public TextMeshProUGUI debug_stats;
 
 	public Transform  groundCheckTransform;
 	GameObject		  bone_upper;
@@ -401,9 +401,7 @@ public class player : MonoBehaviour {
 		float a3 = Quaternion.Angle( forearm.rotation, hand.rotation );
 
 		text_stats.text = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3 );
-		// debug_stats.text = String.Format(
-		//     "Received:\n{0}\nBases:\n{1}\nTransform:\n{2}\nManipulated:\n{3}\nPlaced:\n{4}",
-		//     float_array_to_string(raw_values), float_array_to_string(base_values), float_array_to_string(new_values),
+		debug_stats.text = String.Format("Received:\n{0}\nPlaced:\n{1}", float_array_to_string(raw_values), float_array_to_string(new_values));
 	}
 
 	void FixedUpdate() {
