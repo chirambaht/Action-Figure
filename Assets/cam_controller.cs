@@ -18,7 +18,6 @@ public class cam_controller : MonoBehaviour {
     GameObject text_ui;
     GameObject[] button_ui = new GameObject[2];
 
-    int cam_tracker = 0; 
     bool three_cam_view = true;
     // 0 - All 3 cameras    x   y   w   h
     // 1 - main camera      0.5 0   0.5 1
@@ -105,9 +104,9 @@ public class cam_controller : MonoBehaviour {
         }
         ui_show = !ui_show;
         text_ui.SetActive(ui_show);
-        for (int i = 0; i < button_ui.Length; i++){
-            button_ui[i].SetActive(ui_show);
-        }
+        // for (int i = 0; i < button_ui.Length; i++){
+        //     button_ui[i].SetActive(ui_show);
+        // }
     }
 
     public void tri_camera(bool to_change = true){
@@ -145,43 +144,5 @@ public class cam_controller : MonoBehaviour {
             }
             
         }
-
-        // switch (cam_tracker){
-        //     case 0:
-        //     Debug.LogFormat("Looking at all cams,  c_t: {0}", cam_tracker);
-        //         Camera.allCameras[0].rect = new Rect(0.5f,0,0.5f,1);
-        //         Camera.allCameras[1].rect = new Rect(0,0.5f,0.5f,0.5f);
-        //         Camera.allCameras[2].rect = new Rect(0,0,0.5f,0.5f);
-        //         break;
-        //     case 1:
-        //     Debug.LogFormat("Looking at main cam,  c_t: {0}", cam_tracker);
-        //         Camera.allCameras[0].rect = new Rect(1,1,1,1);
-        //         Camera.allCameras[1].enabled = false;
-        //         Camera.allCameras[2].enabled = false;
-        //         // Camera.allCameras[1].rect = new Rect(0,0,0,0);
-        //         // Camera.allCameras[2].rect = new Rect(0,0,0,0);
-        //         break;
-        //     case 2:
-        //     Debug.LogFormat("Looking at top cam,  c_t: {0}", cam_tracker);
-        //         Camera.allCameras[1].enabled = true;
-        //         Camera.allCameras[1].rect = new Rect(1,1,1,1);
-        //         Camera.allCameras[0].enabled = false;
-        //         Camera.allCameras[2].enabled = false;
-        //         // Camera.allCameras[0].rect = new Rect(0,0,0,0);
-        //         // Camera.allCameras[2].rect = new Rect(0,0,0,0);                
-        //         break;
-        //     case 3:
-        //     Debug.LogFormat("Looking at side cam,  c_t: {0}", cam_tracker);
-        //         Camera.allCameras[2].rect = new Rect(1,1,1,1);
-        //         Camera.allCameras[0].rect = new Rect(0,0,0,0);
-        //         Camera.allCameras[1].rect = new Rect(0,0,0,0);
-        //         break;
-        //     default:
-        //         cam_tracker =0;
-        //         Camera.allCameras[0].rect = new Rect(0.5f,0,0.5f,1);
-        //         Camera.allCameras[1].rect = new Rect(0,0.5f,0.5f,0.5f);
-        //         Camera.allCameras[2].rect = new Rect(0,0,0.5f,0.5f);
-        //     break;
-        // }
     }
 }

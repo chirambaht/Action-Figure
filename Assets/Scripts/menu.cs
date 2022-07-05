@@ -34,7 +34,12 @@ public class menu : MonoBehaviour
         PlayerPrefs.SetString("name", participant_name.text);
         PlayerPrefs.SetString("ip", ip_input.text);
         PlayerPrefs.SetInt("mass", int.Parse(participant_mass.text));
-        SceneManager.LoadScene("Action Scene");
+        if (genders[gender_dropdown.value] == "Male"){
+            SceneManager.LoadScene("Action Scene Male");
+        }
+        else {
+            SceneManager.LoadScene("Action Scene Female");
+        }
     }
 
     // public void change_sprite_active( GameObject sprite, bool active_level ) {

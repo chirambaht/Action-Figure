@@ -227,12 +227,6 @@ public class player : MonoBehaviour {
 
 		gender_choice = PlayerPrefs.GetString( "gender" );
 
-		// if (gender_choice == "Male"){
-
-		// } else{
-
-		// }
-
 		hand_choice = PlayerPrefs.GetString( "hand" );
 		if( hand_choice == "Left" ) {
 			bone_upper = GameObject.Find( "mixamorig:LeftArm" );
@@ -252,8 +246,8 @@ public class player : MonoBehaviour {
 		name_choice = PlayerPrefs.GetString( "name" );
 
 		mainPlayer.mass = mass_choice;
-		server_ip		= PlayerPrefs.GetString( "ip" );
-
+		ip_choice		= PlayerPrefs.GetString( "ip" );
+		server_ip = ip_choice;
 		bicep	= bone_upper.transform;
 		hand	= bone_hand.transform;
 		forearm = bone_lower.transform;
@@ -302,6 +296,9 @@ public class player : MonoBehaviour {
 
 		try {
 			log_writer = new( file_name_for_log, append: true );
+			
+			
+			log_writer.WriteLine( String.Format("Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}",name_choice, mass_choice, hand_choice, gender_choice, ip_choice) );
 		} catch( Exception e ) {
 			Debug.Log( e.Message );
 		}
