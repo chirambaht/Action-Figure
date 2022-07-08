@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEditor;
 using TMPro;
 using UnityEngine.UI;
@@ -22,7 +23,7 @@ public class player : MonoBehaviour {
 
 	string path = "";
 
-	static string[] combo_list = { "123001", "123010", "123011", "123100", "123101", "123110", "123111", "123000", "132001", "132010", "132011", "132100", "132101", "132110", "132111", "132000", "213001", "213010", "213011", "213100", "213101", "213110", "213111", "213000", "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000", "312001", "312010", "312011", "312100", "312101", "312110", "312111", "312000", "321001", "321010", "321011", "321100", "321101", "321110", "321111", "321000" };
+	static string[] combo_list = { "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000" };
 	int combo_index			   = 0;
 
 	public int DATA_PACKET_W = 0;
@@ -127,13 +128,14 @@ public class player : MonoBehaviour {
 	public float[] get_float_array_from_byte_array( Byte[] byte_array, int length = 30, float factor = 10000 ) {
 		int l				= length / 2; // Number of integers in the array
 		float[] float_array = new float[l];
-		for( int i = 0; i < DATA_START_POINT; i++ ) {
-			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 );
-		}
 
 		for( int i = DATA_START_POINT; i < l; i++ ) {
 			float_array[i] = BitConverter.ToInt16( byte_array, i * 2 ) / ( factor );
-			// float_array[i] = get_int_from_byte( byte_array[i * 2], byte_array[i * ( 2 + 1 )] );
+			if( float_array[i] > 1 ) {
+				float_array[i] = 1;
+			} else if( float_array[i] < -1 ) {
+				float_array[i] = -1;
+			}
 		}
 		return float_array;
 	}
@@ -189,7 +191,18 @@ public class player : MonoBehaviour {
 			combo_index = combo_list.Length - 1;
 		}
 
-		string combo = combo_list[combo_index];
+		set_combo( combo_list[combo_index] );
+	}
+
+	public void set_combo( string in_combo = "231001" ) {
+		string combo = in_combo;
+		while( combo.Length < 6 ) {
+			combo += "0";
+		}
+		if( combo.Length > 6 ) {
+			combo = combo.Substring( 0, 6 );
+		}
+
 		Debug.LogFormat( "Combo: {0}", combo );
 
 		int x = int.Parse( combo.Substring( 3, 1 ) );
@@ -214,9 +227,6 @@ public class player : MonoBehaviour {
 		DATA_PACKET_X = int.Parse( combo.Substring( 0, 1 ) );
 		DATA_PACKET_Y = int.Parse( combo.Substring( 1, 1 ) );
 		DATA_PACKET_Z = int.Parse( combo.Substring( 2, 1 ) );
-		// X_SCALER	  = x;
-		// Y_SCALER	  = y;
-		// Z_SCALER	  = z;
 	}
 
 	void Start() {
@@ -247,12 +257,12 @@ public class player : MonoBehaviour {
 
 		mainPlayer.mass = mass_choice;
 		ip_choice		= PlayerPrefs.GetString( "ip" );
-		server_ip = ip_choice;
-		bicep	= bone_upper.transform;
-		hand	= bone_hand.transform;
-		forearm = bone_lower.transform;
+		server_ip		= ip_choice;
+		bicep			= bone_upper.transform;
+		hand			= bone_hand.transform;
+		forearm			= bone_lower.transform;
 		// All game objects to be assigned in the properties of the model.
-
+		set_combo( "231001" );
 		// udp_client = new UdpClient();
 		Array.Clear( new_values, 0, 2 );
 		Array.Clear( base_values, 0, 2 );
@@ -296,9 +306,8 @@ public class player : MonoBehaviour {
 
 		try {
 			log_writer = new( file_name_for_log, append: true );
-			
-			
-			log_writer.WriteLine( String.Format("Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}",name_choice, mass_choice, hand_choice, gender_choice, ip_choice) );
+
+			log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
 		} catch( Exception e ) {
 			Debug.Log( e.Message );
 		}
@@ -397,8 +406,8 @@ public class player : MonoBehaviour {
 		float a2 = Quaternion.Angle( bicep.rotation, forearm.rotation );
 		float a3 = Quaternion.Angle( forearm.rotation, hand.rotation );
 
-		text_stats.text = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3 );
-		debug_stats.text = String.Format("Received:\n{0}\nPlaced:\n{1}", float_array_to_string(raw_values), float_array_to_string(new_values));
+		text_stats.text	 = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", a2, a3 );
+		debug_stats.text = String.Format( "Received:\n{0}\nPlaced:\n{1}", float_array_to_string( raw_values ), float_array_to_string( new_values ) );
 	}
 
 	void FixedUpdate() {
@@ -435,6 +444,36 @@ public class player : MonoBehaviour {
 				Debug.Log( "Network thread stopped" );
 			}
 			Debug.Log( "Done" );
+		} catch( Exception e ) {
+			Debug.LogException( e, this );
+		}
+	}
+
+	public void back_to_main_menu() {
+		try {
+			Debug.Log( "Closing everything..." );
+
+			if( log_writer != null ) {
+				log_writer.Close();
+				Debug.Log( "Log writer closed" );
+			}
+
+			if( tcp_stream != null ) {
+				tcp_stream.Close();
+				tcp_stream.Dispose();
+				Debug.Log( "TCP stream closed" );
+			}
+
+			if( tcp_client.Connected ) {
+				tcp_client.Close();
+				Debug.Log( "TCP client closed" );
+			}
+
+			if( networkThread.IsAlive ) {
+				networkThread.Abort();
+				Debug.Log( "Network thread stopped" );
+			}
+			SceneManager.LoadScene( "Menu" );
 		} catch( Exception e ) {
 			Debug.LogException( e, this );
 		}

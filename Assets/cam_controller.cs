@@ -174,8 +174,12 @@ public class cam_controller : MonoBehaviour
 
     public void rotate_main_cam_by_180_degrees()
     {
-        Camera.main.transform.Rotate(new Vector3(0, 0, 180));
-        Camera.main.transform.position = new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y,
-                                                     Camera.main.transform.position * -1);
+        if (working_camera == Camera.main)
+        {
+            Camera.main.transform.Rotate(new Vector3(0, 180, 0));
+            Camera.main.transform.position =
+                new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y,
+                            Camera.main.transform.position.z * -1);
+        }
     }
 }
