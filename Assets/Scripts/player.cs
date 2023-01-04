@@ -57,6 +57,7 @@ public class player : MonoBehaviour
 
     public TextMeshProUGUI text_stats;
     public TextMeshProUGUI debug_stats;
+    int waited_data_messages;
 
     public Transform groundCheckTransform;
     GameObject bone_upper;
@@ -94,6 +95,8 @@ public class player : MonoBehaviour
     // Logging Variables
     StreamWriter log_writer;
     DateTime log_time;
+
+    string file_name_for_log;
     // COrrects the quaternions base on the MPU direction
 
     const float zoomOutMin = 3;
@@ -289,20 +292,18 @@ public class player : MonoBehaviour
         networkThread = new Thread(new ThreadStart(GetNetData));
         networkThread.IsBackground = true;
 
+        
+
         path = Application.persistentDataPath.ToString();
         if (path.Length == 0)
         {
             path = "";
         }
         networkThread.Start();
-    }
-
-    void GetNetData()
-    {
-        int waited_data_messages = 0;
+        waited_data_messages = 0;
         log_time = DateTime.Now;
         Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"), path);
-        string file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
+        file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
 
         try
         {
@@ -315,101 +316,126 @@ public class player : MonoBehaviour
             Debug.Log(e.Message);
         }
 
-        while (true)
-        {
-            try
-            {
-                while (disconnect)
-                {
-                    Debug.Log("Disconnected from client. Press escape to exit.");
-                    Thread.Sleep(30000);
-                    // end_session();
+        Debug.LogFormat("Connecting to: {0}:9022", server_ip);
+        tcp_client = new TcpClient(server_ip, 9022);
+        Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
 
-                    // Show popup eventually
+        tcp_stream = tcp_client.GetStream();
+    }
 
-                }
+    void GetNetData()
+    {
+        // waited_data_messages = 0;
+        // log_time = DateTime.Now;
+        // Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"), path);
+        // file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
 
-                Debug.LogFormat("Connecting to: {0}:9022", server_ip);
-                tcp_client = new TcpClient(server_ip, 9022);
-                Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
+        // try
+        // {
+        //     log_writer = new(file_name_for_log, append: true);
 
-                tcp_stream = tcp_client.GetStream();
+        //     log_writer.WriteLine(String.Format("Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice));
+        // }
+        // catch (Exception e)
+        // {
+        //     Debug.Log(e.Message);
+        // }
 
-                while (tcp_client.Connected)
-                {
-                    if (!tcp_stream.DataAvailable)
-                    {
-                        waited_data_messages++;
-                        if (waited_data_messages > 60)
-                        {
-                            waited_data_messages = 0;
-                            Debug.Log("No data received from client.");
-                            break;
-                        }
-                        if (waited_data_messages < 50)
-                        {
-                            Thread.Sleep(500);
-                        }
-                        else
-                        {
-                            Thread.Sleep(1000);
-                            Debug.LogFormat("Only {0}s left to for data", 60 - waited_data_messages);
-                        }
-                        continue;
-                    }
-                    // Read the length of the packet
-                    int bbyytteess = tcp_stream.Read(rec_data_len, 0, 4);
-                    int l = BitConverter.ToInt32(rec_data_len, 0);
+        // while (true)
+        // {
+        //     try
+        //     {
+        //         while (disconnect)
+        //         {
+        //             Debug.Log("Disconnected from client. Press escape to exit.");
+        //             Thread.Sleep(30000);
+        //             // end_session();
 
-                    // Read the data packet
-                    Byte[] proto_rec_data = new Byte[l];
-                    bbyytteess = tcp_stream.Read(proto_rec_data, 0, proto_rec_data.Length);
+        //             // Show popup eventually
 
-                    // print the received bytes
-                    bool data_in = get_float_array_from_proto(proto_rec_data);
+        //         }
 
-                    // Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
+        //         Debug.LogFormat("Connecting to: {0}:9022", server_ip);
+        //         tcp_client = new TcpClient(server_ip, 9022);
+        //         Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
 
-                    if (data_in && disconnect)
-                    {
-                        Debug.Log("Server has requested a disconnect.");
-                        break;
-                    }
-                    else if (!data_in)
-                    {
-                        Debug.Log("Bad packet");
-                    }
+        //         tcp_stream = tcp_client.GetStream();
 
-                    waited_data_messages = 0;
-                    allocate_devices();
-                    log_packet();
+        //         while (tcp_client.Connected)
+        //         {
+        //             if (!tcp_stream.DataAvailable)
+        //             {
+        //                 waited_data_messages++;
+        //                 if (waited_data_messages > 60)
+        //                 {
+        //                     waited_data_messages = 0;
+        //                     Debug.Log("No data received from client.");
+        //                     break;
+        //                 }
+        //                 if (waited_data_messages < 50)
+        //                 {
+        //                     Thread.Sleep(500);
+        //                 }
+        //                 else
+        //                 {
+        //                     Thread.Sleep(1000);
+        //                     Debug.LogFormat("Only {0}s left to for data", 60 - waited_data_messages);
+        //                 }
+        //                 continue;
+        //             }
+        //             // Read the length of the packet
+        //             int bbyytteess = tcp_stream.Read(rec_data_len, 0, 4);
+        //             int l = BitConverter.ToInt32(rec_data_len, 0);
 
-                    // check if tcp client is still connected
-                    if (!tcp_client.Connected)
-                    {
-                        Debug.Log("Client disconnected.");
-                        break;
-                    }
-                }
-            }
-            catch (Exception err)
-            {
-                err.ToString();
-            }
-            finally
-            {
-                // if( tcp_stream != null ) {
-                // 	tcp_stream.Close();
-                // 	tcp_stream.Dispose();
-                // 	Debug.Log( "TCP stream closed" );
-                // }
+        //             // Read the data packet
+        //             Byte[] proto_rec_data = new Byte[l];
+        //             bbyytteess = tcp_stream.Read(proto_rec_data, 0, proto_rec_data.Length);
 
-                // if( tcp_client.Connected ) {
-                // 	tcp_client.Close();
-                // 	Debug.Log( "TCP client closed" );
-                // }
-            }
-        }
+        //             // print the received bytes
+        //             bool data_in = get_float_array_from_proto(proto_rec_data);
+
+        //             // Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
+
+        //             if (data_in && disconnect)
+        //             {
+        //                 Debug.Log("Server has requested a disconnect.");
+        //                 break;
+        //             }
+        //             else if (!data_in)
+        //             {
+        //                 Debug.Log("Bad packet");
+        //             }
+
+        //             waited_data_messages = 0;
+        //             allocate_devices();
+        //             log_packet();
+
+        //             // check if tcp client is still connected
+        //             if (!tcp_client.Connected)
+        //             {
+        //                 Debug.Log("Client disconnected.");
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     catch (Exception err)
+        //     {
+        //         err.ToString();
+        //     }
+        //     finally
+        //     {
+        //         // if( tcp_stream != null ) {
+        //         // 	tcp_stream.Close();
+        //         // 	tcp_stream.Dispose();
+        //         // 	Debug.Log( "TCP stream closed" );
+        //         // }
+
+        //         // if( tcp_client.Connected ) {
+        //         // 	tcp_client.Close();
+        //         // 	Debug.Log( "TCP client closed" );
+        //         // }
+        //     }
+        // }
     }
 
     
@@ -441,6 +467,32 @@ public class player : MonoBehaviour
             t_pose();
         }
 
+        int bbyytteess = tcp_stream.Read(rec_data_len, 0, 4);
+        int l = BitConverter.ToInt32(rec_data_len, 0);
+
+        // Read the data packet
+        Byte[] proto_rec_data = new Byte[l];
+        bbyytteess = tcp_stream.Read(proto_rec_data, 0, proto_rec_data.Length);
+
+        // print the received bytes
+        bool data_in = get_float_array_from_proto(proto_rec_data);
+
+        // Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
+
+        if (data_in && disconnect)
+        {
+            Debug.Log("Server has requested a disconnect.");
+            disconnect = true;
+        }
+        else if (!data_in)
+        {
+            Debug.Log("Bad packet");
+        }
+
+        waited_data_messages = 0;
+        allocate_devices();
+        log_packet();
+
 
         try
         {
@@ -456,7 +508,7 @@ public class player : MonoBehaviour
         angle_elbow = 180 - Quaternion.Angle(bicep.rotation, forearm.rotation);
         angle_wrist = 180 - Quaternion.Angle(forearm.rotation, hand.rotation);
 
-        text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow, angle_wrist);
+        text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow.ToString("0.000"), angle_wrist.ToString("0.000"));
         debug_stats.text = parse_debug_stats();
     }
 
