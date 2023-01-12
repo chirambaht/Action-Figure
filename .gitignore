@@ -79,3 +79,4 @@ Packages/packages-lock.json
 ProjectSettings/ProjectVersion.txt
 *.act
 Action Tracer/*
+*.csv

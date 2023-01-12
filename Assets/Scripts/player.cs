@@ -28,7 +28,13 @@ public class player : MonoBehaviour
 
     string path = "";
 
-    // static string[] combo_list = { "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000" };
+    // static string[] combo_list = { "231001", "231010", "231011", "231100", "231101", "231110", "231111", "231000" };.    
+    static string[] quat_combos = { "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111", "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111" };
+    int quat_index = 0;
+
+    static string[] quat_order = { "wxyz", "wxzy", "wyxz", "wyzx", "wzxy", "wzyx", "xwyz", "xwzy", "xywz", "xyzw", "xzwy", "xzyw", "ywxz", "ywzx", "yxwz", "yxzw", "yzwx", "yzxw", "zwxy", "zwyx", "zxwy", "zxyw", "zywx", "zyxw"};
+    int order_index = 0;
+
 
     // public int DATA_PACKET_W = 0;
     // public int DATA_PACKET_X = 2;
@@ -89,11 +95,12 @@ public class player : MonoBehaviour
 
     // TCP Variables
     TcpClient tcp_client = new TcpClient();
-    Thread networkThread;
     NetworkStream tcp_stream;
 
     // Logging Variables
     StreamWriter log_writer;
+    StreamWriter sol_writer;
+
     DateTime log_time;
 
     string file_name_for_log;
@@ -116,6 +123,21 @@ public class player : MonoBehaviour
     public void log_packet()
     {
         log_writer.WriteLine(received_data_packet.ToString());
+
+        string log_string;
+
+        // Add the current frame time
+        log_string = (DateTime.Now - log_time).ToString() + ",";
+        // Add the rotations
+        log_string += bicep.transform.eulerAngles.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + bicep.transform.eulerAngles.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + bicep.transform.eulerAngles.z.ToString("0.00000", CultureInfo.InvariantCulture) + "," ;	
+        log_string += forearm.transform.eulerAngles.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + forearm.transform.eulerAngles.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + forearm.transform.eulerAngles.z.ToString("0.00000", CultureInfo.InvariantCulture) + "," ;
+        log_string += hand.transform.eulerAngles.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + hand.transform.eulerAngles.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + hand.transform.eulerAngles.z.ToString("0.00000", CultureInfo.InvariantCulture) + "," ;
+        // Add the positions
+        log_string += bicep.transform.position.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + bicep.transform.position.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + bicep.transform.position.z.ToString("0.00000", CultureInfo.InvariantCulture) + "," ;
+        log_string += forearm.transform.position.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + forearm.transform.position.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + forearm.transform.position.z.ToString("0.00000", CultureInfo.InvariantCulture) + "," ;
+        log_string += hand.transform.position.x.ToString("0.00000", CultureInfo.InvariantCulture) + "," + hand.transform.position.y.ToString("0.00000", CultureInfo.InvariantCulture) + "," + hand.transform.position.z.ToString("0.00000", CultureInfo.InvariantCulture)  ;
+
+        sol_writer.WriteLine(log_string);
     }
 
 
@@ -156,25 +178,102 @@ public class player : MonoBehaviour
         return false;
     }
 
+    Quaternion set_combo_quats(Quaternion inc, int combo, int order ){
+        float[] quat = {0,0,0,0};
+
+        int q_x_m, q_y_m, q_z_m, q_w_m;
+
+        q_x_m = (quat_combos[combo].Substring(0, 1) == "0") ? -1 : 1;
+        q_y_m = (quat_combos[combo].Substring(1, 1) == "0") ? -1 : 1;
+        q_z_m = (quat_combos[combo].Substring(2, 1) == "0") ? -1 : 1;
+        q_w_m = (quat_combos[combo].Substring(3, 1) == "0") ? -1 : 1;
+
+        for (int i = 0; i < 4; i++)
+        {
+            switch(quat_order[order].Substring(i, 1)){
+                case "w":
+                    quat[i] = inc.w * q_w_m;
+                    break;
+                case "x":
+                    quat[i] = inc.x * q_x_m;
+                    break;
+                case "y":
+                    quat[i] = inc.y * q_y_m;
+                    break; 
+                case "z":
+                    quat[i] = inc.z * q_z_m;
+                    break;
+                default:
+                    quat[i] = 0;
+                    break;
+            }
+        }
+        return new Quaternion(quat[0], quat[1], quat[2], quat[3]);
+    }
+
+    Quaternion get_combo_quats(Quaternion inc){
+        float[] quat = {0,0,0,0};
+
+        int q_x_m, q_y_m, q_z_m, q_w_m;
+
+        q_x_m = (quat_combos[quat_index].Substring(0, 1) == "0") ? -1 : 1;
+        q_y_m = (quat_combos[quat_index].Substring(1, 1) == "0") ? -1 : 1;
+        q_z_m = (quat_combos[quat_index].Substring(2, 1) == "0") ? -1 : 1;
+        q_w_m = (quat_combos[quat_index].Substring(3, 1) == "0") ? -1 : 1;
+
+        for (int i = 0; i < 4; i++)
+        {
+            switch(quat_order[order_index].Substring(i, 1)){
+                case "w":
+                    quat[i] = inc.w * q_w_m;
+                    break;
+                case "x":
+                    quat[i] = inc.x * q_x_m;
+                    break;
+                case "y":
+                    quat[i] = inc.y * q_y_m;
+                    break; 
+                case "z":
+                    quat[i] = inc.z * q_z_m;
+                    break;
+                default:
+                    quat[i] = 0;
+                    break;
+            }
+        }
+        return new Quaternion(quat[0], quat[1], quat[2], quat[3]);
+    }
+
     public void allocate_devices()
     {
+        
+
+        
+
         for (int i = 0; i < received_data_packet.DeviceData.Count; i++)
         {
             // You may need to swap the X and W values
             if (received_data_packet.DeviceData[i].DeviceIdentifierContents == 8)
             {
                 data_bicep = received_data_packet.DeviceData[i].Clone();
-                q_bicep = new Quaternion(data_bicep.Quaternion.W, data_bicep.Quaternion.Y, data_bicep.Quaternion.Z, data_bicep.Quaternion.X);
+
+                q_bicep = set_combo_quats(new Quaternion( data_bicep.Quaternion.W, data_bicep.Quaternion.X, data_bicep.Quaternion.Y, data_bicep.Quaternion.Z), 4, 4 );
+
+                // q_bicep = new Quaternion(data_bicep.Quaternion.X * q_x_m, data_bicep.Quaternion.Y * q_y_m, data_bicep.Quaternion.Z * q_z_m, data_bicep.Quaternion.W * q_w_m);
             }
             else if (received_data_packet.DeviceData[i].DeviceIdentifierContents == 16)
             {
                 data_forearm = received_data_packet.DeviceData[i].Clone();
-                q_forearm = new Quaternion(data_forearm.Quaternion.W, data_forearm.Quaternion.Y, data_forearm.Quaternion.Z, data_forearm.Quaternion.X);
+
+                q_forearm = set_combo_quats(new Quaternion( data_forearm.Quaternion.W, data_forearm.Quaternion.X, data_forearm.Quaternion.Y, data_forearm.Quaternion.Z), 4, 15 );
+                // q_forearm = new Quaternion(data_forearm.Quaternion.X, data_forearm.Quaternion.Y, data_forearm.Quaternion.Z, data_forearm.Quaternion.W);
             }
             else if (received_data_packet.DeviceData[i].DeviceIdentifierContents == 32)
             {
                 data_hand = received_data_packet.DeviceData[i].Clone();
-                q_hand = new Quaternion(data_hand.Quaternion.W, data_hand.Quaternion.Y, data_hand.Quaternion.Z, data_hand.Quaternion.X);
+
+                q_hand = set_combo_quats(new Quaternion( data_hand.Quaternion.W, data_hand.Quaternion.X, data_hand.Quaternion.Y, data_hand.Quaternion.Z), 6, 8 );
+                // q_hand = new Quaternion(data_hand.Quaternion.X, data_hand.Quaternion.Y, data_hand.Quaternion.Z, data_hand.Quaternion.W);
             }
         }
 
@@ -183,8 +282,8 @@ public class player : MonoBehaviour
         q_hand = Quaternion.Inverse(ref_hand) * q_hand;
 
         // Subtract the initial rotation
-        q_hand = Quaternion.Inverse(q_forearm) * q_hand;
-        q_forearm = Quaternion.Inverse(q_bicep) * q_forearm;
+        // q_hand = Quaternion.Inverse(q_forearm) * q_hand;
+        // q_forearm = Quaternion.Inverse(q_bicep) * q_forearm;
         }
 
 
@@ -221,6 +320,12 @@ public class player : MonoBehaviour
                 Debug.Log("Log writer closed");
             }
 
+            if (sol_writer != null)
+            {
+                sol_writer.Close();
+                Debug.Log("Log writer closed");
+            }
+
             if (tcp_stream != null)
             {
                 tcp_stream.Close();
@@ -234,11 +339,6 @@ public class player : MonoBehaviour
                 Debug.Log("TCP client closed");
             }
 
-            if (networkThread.IsAlive)
-            {
-                networkThread.Abort();
-                Debug.Log("Network thread stopped");
-            }
             Debug.Log("Done");
         }
         catch (Exception e)
@@ -289,27 +389,27 @@ public class player : MonoBehaviour
         hand = bone_hand.transform;
         forearm = bone_lower.transform;
 
-        networkThread = new Thread(new ThreadStart(GetNetData));
-        networkThread.IsBackground = true;
-
-        
-
         path = Application.persistentDataPath.ToString();
         if (path.Length == 0)
         {
             path = "";
         }
-        networkThread.Start();
         waited_data_messages = 0;
         log_time = DateTime.Now;
         Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"), path);
         file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
+        string file_name_for_sol = name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".csv";
+
 
         try
         {
             log_writer = new(file_name_for_log, append: true);
+            sol_writer = new(file_name_for_sol, append: true);
 
             log_writer.WriteLine(String.Format("Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice));
+            // Write the heading: time, rotations, positions
+            sol_writer.WriteLine("time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z");
+
         }
         catch (Exception e)
         {
@@ -323,122 +423,10 @@ public class player : MonoBehaviour
         tcp_stream = tcp_client.GetStream();
     }
 
-    void GetNetData()
-    {
-        // waited_data_messages = 0;
-        // log_time = DateTime.Now;
-        // Debug.LogFormat("Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString("yyyyMMdd_HHmmss"), path);
-        // file_name_for_log = path + "/" + name_choice + "_" + log_time.ToString("yyyyMMdd_HHmmss") + ".act";
+    void show_combos(){
+        Debug.LogFormat("Combination {0} is {1}, Order {2} is {3}", quat_index, quat_combos[quat_index], order_index, quat_order[order_index]);
 
-        // try
-        // {
-        //     log_writer = new(file_name_for_log, append: true);
-
-        //     log_writer.WriteLine(String.Format("Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice));
-        // }
-        // catch (Exception e)
-        // {
-        //     Debug.Log(e.Message);
-        // }
-
-        // while (true)
-        // {
-        //     try
-        //     {
-        //         while (disconnect)
-        //         {
-        //             Debug.Log("Disconnected from client. Press escape to exit.");
-        //             Thread.Sleep(30000);
-        //             // end_session();
-
-        //             // Show popup eventually
-
-        //         }
-
-        //         Debug.LogFormat("Connecting to: {0}:9022", server_ip);
-        //         tcp_client = new TcpClient(server_ip, 9022);
-        //         Debug.LogFormat("Connected to client {0}", tcp_client.Client.RemoteEndPoint);
-
-        //         tcp_stream = tcp_client.GetStream();
-
-        //         while (tcp_client.Connected)
-        //         {
-        //             if (!tcp_stream.DataAvailable)
-        //             {
-        //                 waited_data_messages++;
-        //                 if (waited_data_messages > 60)
-        //                 {
-        //                     waited_data_messages = 0;
-        //                     Debug.Log("No data received from client.");
-        //                     break;
-        //                 }
-        //                 if (waited_data_messages < 50)
-        //                 {
-        //                     Thread.Sleep(500);
-        //                 }
-        //                 else
-        //                 {
-        //                     Thread.Sleep(1000);
-        //                     Debug.LogFormat("Only {0}s left to for data", 60 - waited_data_messages);
-        //                 }
-        //                 continue;
-        //             }
-        //             // Read the length of the packet
-        //             int bbyytteess = tcp_stream.Read(rec_data_len, 0, 4);
-        //             int l = BitConverter.ToInt32(rec_data_len, 0);
-
-        //             // Read the data packet
-        //             Byte[] proto_rec_data = new Byte[l];
-        //             bbyytteess = tcp_stream.Read(proto_rec_data, 0, proto_rec_data.Length);
-
-        //             // print the received bytes
-        //             bool data_in = get_float_array_from_proto(proto_rec_data);
-
-        //             // Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
-
-        //             if (data_in && disconnect)
-        //             {
-        //                 Debug.Log("Server has requested a disconnect.");
-        //                 break;
-        //             }
-        //             else if (!data_in)
-        //             {
-        //                 Debug.Log("Bad packet");
-        //             }
-
-        //             waited_data_messages = 0;
-        //             allocate_devices();
-        //             log_packet();
-
-        //             // check if tcp client is still connected
-        //             if (!tcp_client.Connected)
-        //             {
-        //                 Debug.Log("Client disconnected.");
-        //                 break;
-        //             }
-        //         }
-        //     }
-        //     catch (Exception err)
-        //     {
-        //         err.ToString();
-        //     }
-        //     finally
-        //     {
-        //         // if( tcp_stream != null ) {
-        //         // 	tcp_stream.Close();
-        //         // 	tcp_stream.Dispose();
-        //         // 	Debug.Log( "TCP stream closed" );
-        //         // }
-
-        //         // if( tcp_client.Connected ) {
-        //         // 	tcp_client.Close();
-        //         // 	Debug.Log( "TCP client closed" );
-        //         // }
-        //     }
-        // }
     }
-
-    
 
     // Update is called once per frame
     void Update()
@@ -456,15 +444,52 @@ public class player : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.H))
         {
             // Change combination to next one
+            quat_index += 1;
+            if (quat_index > 15)
+            {
+                quat_index = 0;
+            }
+            show_combos();
         }
         if (Input.GetKeyDown(KeyCode.G))
         {
             // Change combination to previous one
+            quat_index -= 1;
+            if (quat_index < 0)
+            {
+                quat_index = 15;
+            }
+            show_combos();
         }
 
         if (Input.GetKeyDown(KeyCode.T))
         {
             t_pose();
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            order_index += 1;
+            if (order_index > 15)
+            {
+                quat_index += 1;
+                if (quat_index > 15)
+                {
+                    quat_index = 0;
+                }
+                order_index = 0;
+            }
+            show_combos();
+        }
+
+        if (Input.GetKeyDown(KeyCode.J))
+        {
+            order_index -= 1;
+            if (order_index < 0)
+            {
+                order_index = 15;
+            }
+            show_combos();
         }
 
         int bbyytteess = tcp_stream.Read(rec_data_len, 0, 4);
@@ -510,6 +535,7 @@ public class player : MonoBehaviour
 
         text_stats.text = String.Format("Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow.ToString("0.000"), angle_wrist.ToString("0.000"));
         debug_stats.text = parse_debug_stats();
+
     }
 
     void FixedUpdate()
@@ -537,6 +563,12 @@ public class player : MonoBehaviour
                 Debug.Log("Log writer closed");
             }
 
+            if (sol_writer != null)
+            {
+                sol_writer.Close();
+                Debug.Log("Log writer closed");
+            }
+
             if (tcp_stream != null)
             {
                 tcp_stream.Close();
@@ -550,11 +582,6 @@ public class player : MonoBehaviour
                 Debug.Log("TCP client closed");
             }
 
-            if (networkThread.IsAlive)
-            {
-                networkThread.Abort();
-                Debug.Log("Network thread stopped");
-            }
             SceneManager.LoadScene("Menu");
         }
         catch (Exception e)
