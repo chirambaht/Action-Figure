@@ -142,6 +142,10 @@ public class player : MonoBehaviour {
 			data_string += received_data_packet.DeviceData[i].Gyroscope.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 
 			data_string += received_data_packet.DeviceData[i].Temperature.ToString( "0.00000", CultureInfo.InvariantCulture );
+
+			if( i < received_data_packet.DeviceData.Count - 1 ) {
+				data_string += ",";
+			}
 		}
 
 		sol_writer.WriteLine( log_string );
