@@ -386,7 +386,7 @@ public class player : MonoBehaviour {
 
 			log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
 			// Write the heading: time, rotations, positions
-			sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z" );
+			sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,finger_rot_x,finger_rot_y,finger_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z,finger_pos_x,finger_pos_y,finger_pos_z" );
 			data_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
 
 		} catch( Exception e ) {
