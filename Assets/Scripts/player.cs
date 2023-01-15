@@ -19,6 +19,8 @@ public class player : MonoBehaviour {
 
 	Vector3 touchStart;
 
+	uint bad_packet_counter = 0;
+
 	uint last_packet = 0;
 
 	string path = "";
@@ -115,13 +117,13 @@ public class player : MonoBehaviour {
 		log_string += bicep.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 		log_string += forearm.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 		log_string += hand.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-        log_string += finger.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+		log_string += finger.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 
 		// Add the positions
 		log_string += bicep.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 		log_string += forearm.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
 		log_string += hand.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-        log_string += finger.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture );
+		log_string += finger.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture );
 
 		data_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
 		data_string += received_data_packet.PacketNumber.ToString() + ",";
@@ -342,18 +344,18 @@ public class player : MonoBehaviour {
 
 		hand_choice = PlayerPrefs.GetString( "hand" );
 		if( hand_choice == "Left" ) {
-			bone_upper = GameObject.Find( "mixamorig:LeftArm" );
-			bone_lower = GameObject.Find( "mixamorig:LeftForeArm" );
-			bone_hand  = GameObject.Find( "mixamorig:LeftHand" );
-			bone_finger  = GameObject.Find( "mixamorig:LeftHandIndex1" );
+			bone_upper	= GameObject.Find( "mixamorig:LeftArm" );
+			bone_lower	= GameObject.Find( "mixamorig:LeftForeArm" );
+			bone_hand	= GameObject.Find( "mixamorig:LeftHand" );
+			bone_finger = GameObject.Find( "mixamorig:LeftHandIndex1" );
 
 			side_camera.transform.position = new Vector3( 1.25f, 2f, -0.5f );
 			side_camera.transform.rotation = Quaternion.Euler( 0, -45f, 0 );
 		} else {
-			bone_upper = GameObject.Find( "mixamorig:RightArm" );
-			bone_lower = GameObject.Find( "mixamorig:RightForeArm" );
-			bone_hand  = GameObject.Find( "mixamorig:RightHand" );
-            bone_finger = GameObject.Find( "mixamorig:RightHandIndex1" );
+			bone_upper	= GameObject.Find( "mixamorig:RightArm" );
+			bone_lower	= GameObject.Find( "mixamorig:RightForeArm" );
+			bone_hand	= GameObject.Find( "mixamorig:RightHand" );
+			bone_finger = GameObject.Find( "mixamorig:RightHandIndex1" );
 
 			side_camera.transform.position = new Vector3( -1.25f, 2f, -0.5f );
 			side_camera.transform.rotation = Quaternion.Euler( 0, 45f, 0 );
@@ -367,7 +369,7 @@ public class player : MonoBehaviour {
 		bicep	= bone_upper.transform;
 		hand	= bone_hand.transform;
 		forearm = bone_lower.transform;
-        finger = bone_finger.transform;
+		finger	= bone_finger.transform;
 
 		path = Application.persistentDataPath.ToString();
 		if( path.Length == 0 ) {
@@ -476,6 +478,13 @@ public class player : MonoBehaviour {
 			disconnect = true;
 		} else if( !data_in ) {
 			Debug.Log( "Bad packet" );
+			bad_packet_counter += 1;
+
+			if( bad_packet_counter > 50 ) {
+				Debug.Log( "Too many bad packets, disconnecting" );
+				end_session();
+				SceneManager.LoadScene( "Menu" );
+			}
 		}
 
 		allocate_devices();
