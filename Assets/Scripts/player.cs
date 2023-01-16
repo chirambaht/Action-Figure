@@ -540,6 +540,7 @@ public class player : MonoBehaviour {
 
 		text_stats.text	 = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow.ToString( "0.000" ), angle_wrist.ToString( "0.000" ) );
 		debug_stats.text = parse_debug_stats();
+		text_stats.text += "\n" + ( logging ? "Logging" : "Not logging" );
 	}
 
 	void FixedUpdate() {
