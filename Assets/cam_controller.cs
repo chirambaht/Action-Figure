@@ -14,7 +14,7 @@ public class cam_controller : MonoBehaviour
     Camera[] all_cameras = new Camera[3];
     int camera_index = 0;
     int camera_count = 0;
-
+    public AudioSource audioSource;
     bool ui_show = true;
     GameObject text_ui;
     GameObject[] button_ui = new GameObject[2];

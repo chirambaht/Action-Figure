@@ -14,6 +14,7 @@ public class menu : MonoBehaviour {
 
 	public TMP_InputField participant_name;
 	public TMP_InputField participant_mass;
+	public TMP_InputField invoke_timer;
 	public TMP_InputField ip_input;
 
 	List<string> genders = new List<string>( new string[] { "Male", "Female" } );
@@ -32,7 +33,9 @@ public class menu : MonoBehaviour {
 		PlayerPrefs.SetString( "ip", ip_input.text );
 		PlayerPrefs.SetInt( "mass", int.Parse( participant_mass.text ) );
 
-		Invoke( "scene_swap", 10f );
+		Debug.Log( "I will wait for " + invoke_timer.text + " seconds before starting the scene." );
+
+		Invoke( "scene_swap", float.Parse( invoke_timer.text ) );
 		// if( genders[gender_dropdown.value] == "Male" ) {
 		// 	SceneManager.LoadScene( "Action Scene Male" );
 		// } else {

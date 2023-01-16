@@ -91,11 +91,24 @@ public class player : MonoBehaviour {
 	DateTime log_time;
 
 	string file_name_for_log;
+	string file_name_for_sol;
+	string file_name_for_data;
+
+	int file_number = 0;
 	// COrrects the quaternions base on the MPU direction
+	public AudioSource audioSource;
 
-	const float zoomOutMin = 3;
-	const float zoomOutMax = 0;
-
+	const float zoomOutMin		 = 3;
+	const float zoomOutMax		 = 0;
+	bool		logging			 = false;
+	bool		first_data_point = true;
+	public void play_sound() {
+		if( logging ) {
+			return;
+		}
+		audioSource.Play();
+		logging = true;
+	}
 	void zoom( float increment ) {
 		if( working_camera.transform.position.z + increment < zoomOutMax * -1 || working_camera.transform.position.z + increment > -1 * zoomOutMin ) {
 			return;
@@ -105,6 +118,40 @@ public class player : MonoBehaviour {
 	}
 
 	public void log_packet() {
+		if( !logging ) {
+			return;
+		} else {
+			if( first_data_point ) {
+				try {
+					path = Application.persistentDataPath.ToString();
+
+					if( path.Length == 0 ) {
+						path = "";
+					}
+
+					Debug.LogFormat( "Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString( "yyyyMMdd_HHmmss" ), path );
+
+					file_name_for_log = path + "/" + log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".act";
+
+					file_name_for_sol  = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".csv";
+					file_name_for_data = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + "_packets.csv";
+
+					file_number++;
+
+					log_writer	= new( file_name_for_log, append: true );
+					sol_writer	= new( file_name_for_sol, append: true );
+					data_writer = new( file_name_for_data, append: true );
+
+					log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
+					sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,finger_rot_x,finger_rot_y,finger_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z,finger_pos_x,finger_pos_y,finger_pos_z" );
+					data_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
+
+				} catch( Exception e ) {
+					Debug.Log( e.Message );
+				}
+				first_data_point = false;
+			}
+		}
 		log_writer.WriteLine( received_data_packet.ToString() );
 		TimeSpan t_span = DateTime.Now - log_time;
 
@@ -371,35 +418,12 @@ public class player : MonoBehaviour {
 		forearm = bone_lower.transform;
 		finger	= bone_finger.transform;
 
-		path = Application.persistentDataPath.ToString();
-		if( path.Length == 0 ) {
-			path = "";
-		}
-		log_time = DateTime.Now;
-		Debug.LogFormat( "Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString( "yyyyMMdd_HHmmss" ), path );
-		file_name_for_log		  = path + "/" + name_choice + "_" + log_time.ToString( "yyyyMMdd_HHmmss" ) + ".act";
-		string file_name_for_sol  = name_choice + "_" + log_time.ToString( "yyyyMMdd_HHmmss" ) + ".csv";
-		string file_name_for_data = name_choice + "_" + log_time.ToString( "yyyyMMdd_HHmmss" ) + "_data.csv";
-
-		try {
-			log_writer	= new( file_name_for_log, append: true );
-			sol_writer	= new( file_name_for_sol, append: true );
-			data_writer = new( file_name_for_data, append: true );
-
-			log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
-			// Write the heading: time, rotations, positions
-			sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,finger_rot_x,finger_rot_y,finger_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z,finger_pos_x,finger_pos_y,finger_pos_z" );
-			data_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
-
-		} catch( Exception e ) {
-			Debug.Log( e.Message );
-		}
-
 		Debug.LogFormat( "Connecting to: {0}:9022", server_ip );
 		tcp_client = new TcpClient( server_ip, 9022 );
 		Debug.LogFormat( "Connected to client {0}", tcp_client.Client.RemoteEndPoint );
 
 		tcp_stream = tcp_client.GetStream();
+		log_time   = DateTime.Now;
 	}
 
 	void show_combos() {
@@ -461,30 +485,43 @@ public class player : MonoBehaviour {
 			show_combos();
 		}
 
-		int bbyytteess = tcp_stream.Read( rec_data_len, 0, 4 );
-		int l		   = BitConverter.ToInt32( rec_data_len, 0 );
+		// Check if audio play was started and has ended
+		if( logging && !audioSource.isPlaying ) {
+			logging			 = false;
+			first_data_point = true;
+			close_writers();
+		}
 
-		// Read the data packet
-		Byte[] proto_rec_data = new Byte[l];
-		bbyytteess			  = tcp_stream.Read( proto_rec_data, 0, proto_rec_data.Length );
+		try {
+			int bbyytteess = tcp_stream.Read( rec_data_len, 0, 4 );
+			int l		   = BitConverter.ToInt32( rec_data_len, 0 );
 
-		// print the received bytes
-		bool data_in = get_float_array_from_proto( proto_rec_data );
+			// Read the data packet
+			Byte[] proto_rec_data = new Byte[l];
+			bbyytteess			  = tcp_stream.Read( proto_rec_data, 0, proto_rec_data.Length );
 
-		// Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
+			// print the received bytes
+			bool data_in = get_float_array_from_proto( proto_rec_data );
 
-		if( data_in && disconnect ) {
-			Debug.Log( "Server has requested a disconnect." );
-			disconnect = true;
-		} else if( !data_in ) {
-			Debug.Log( "Bad packet" );
-			bad_packet_counter += 1;
+			// Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
 
-			if( bad_packet_counter > 50 ) {
-				Debug.Log( "Too many bad packets, disconnecting" );
-				end_session();
-				SceneManager.LoadScene( "Menu" );
+			if( data_in && disconnect ) {
+				Debug.Log( "Server has requested a disconnect." );
+				disconnect = true;
+			} else if( !data_in ) {
+				Debug.Log( "Bad packet" );
+				bad_packet_counter += 1;
+
+				if( bad_packet_counter > 50 ) {
+					Debug.Log( "Too many bad packets, disconnecting" );
+					end_session();
+					SceneManager.LoadScene( "Menu" );
+				}
 			}
+		} catch {
+			// Debug.Log( "Server has disconnected" );
+			// end_session();
+			// SceneManager.LoadScene( "Menu" );
 		}
 
 		allocate_devices();
@@ -515,24 +552,28 @@ public class player : MonoBehaviour {
 		end_session();
 	}
 
+	void close_writers() {
+		if( log_writer != null ) {
+			log_writer.Close();
+			Debug.Log( "Log writer 1 closed" );
+		}
+
+		if( sol_writer != null ) {
+			sol_writer.Close();
+			Debug.Log( "Log writer 2 closed" );
+		}
+
+		if( data_writer != null ) {
+			data_writer.Close();
+			Debug.Log( "Log writer 3 closed" );
+		}
+	}
+
 	public void back_to_main_menu() {
 		try {
 			Debug.Log( "Closing everything..." );
 
-			if( log_writer != null ) {
-				log_writer.Close();
-				Debug.Log( "Log writer 1 closed" );
-			}
-
-			if( sol_writer != null ) {
-				sol_writer.Close();
-				Debug.Log( "Log writer 2 closed" );
-			}
-
-			if( data_writer != null ) {
-				data_writer.Close();
-				Debug.Log( "Log writer 3 closed" );
-			}
+			close_writers();
 
 			if( tcp_stream != null ) {
 				tcp_stream.Close();
