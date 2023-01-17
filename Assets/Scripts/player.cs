@@ -82,6 +82,7 @@ public class player : MonoBehaviour {
 	// TCP Variables
 	TcpClient	  tcp_client = new TcpClient();
 	NetworkStream tcp_stream;
+	Thread		  network_thread;
 
 	// Logging Variables
 	StreamWriter log_writer;
@@ -362,18 +363,12 @@ public class player : MonoBehaviour {
 				Debug.Log( "Log writer 3 closed" );
 			}
 
-			if( tcp_stream != null ) {
-				tcp_stream.Close();
-				tcp_stream.Dispose();
-				Debug.Log( "TCP stream closed" );
-			}
+			close_tcp();
 
-			if( tcp_client.Connected ) {
-				tcp_client.Close();
-				Debug.Log( "TCP client closed" );
+			if( network_thread.IsAlive ) {
+				network_thread.Abort();
+				Debug.Log( "Network thread aborted" );
 			}
-
-			Debug.Log( "Done" );
 		} catch( Exception e ) {
 			Debug.LogException( e, this );
 		}
@@ -418,16 +413,105 @@ public class player : MonoBehaviour {
 		forearm = bone_lower.transform;
 		finger	= bone_finger.transform;
 
-		Debug.LogFormat( "Connecting to: {0}:9022", server_ip );
-		tcp_client = new TcpClient( server_ip, 9022 );
-		Debug.LogFormat( "Connected to client {0}", tcp_client.Client.RemoteEndPoint );
+		log_time = DateTime.Now;
 
-		tcp_stream = tcp_client.GetStream();
-		log_time   = DateTime.Now;
+		// start new thread to receive data
+		network_thread				= new Thread( new ThreadStart( get_network_data ) );
+		network_thread.IsBackground = true;
+
+		network_thread.Start();
 	}
 
 	void show_combos() {
 		Debug.LogFormat( "Combination {0} is {1}, Order {2} is {3}", quat_index, quat_combos[quat_index], order_index, quat_order[order_index] );
+	}
+
+	void close_tcp() {
+		if( tcp_stream != null ) {
+			tcp_stream.Close();
+			tcp_stream.Dispose();
+			Debug.Log( "TCP stream closed" );
+		}
+
+		if( tcp_client.Connected ) {
+			tcp_client.Close();
+			Debug.Log( "TCP client closed" );
+		}
+
+		disconnect = false;
+	}
+
+	void get_network_data() {
+		int	 failed_connections = 0;
+		bool keep_retry			= true;
+
+		while( true ) {
+			// is the network connected?
+			if( keep_retry && !tcp_client.Connected ) {
+				try {
+					tcp_client = new TcpClient( server_ip, 9022 );
+					Debug.LogFormat( "Connected to client {0}", tcp_client.Client.RemoteEndPoint );
+
+					tcp_stream = tcp_client.GetStream();
+				} catch( Exception e ) {
+					Debug.LogException( e, this );
+					failed_connections++;
+
+					if( failed_connections > 10 ) {
+						keep_retry = false;
+					}
+				}
+			}
+
+			if( disconnect ) {
+				close_tcp();
+			}
+
+			if( tcp_client.Connected ) {
+				try {
+					int bbyytteess = tcp_stream.Read( rec_data_len, 0, 4 );
+					int l		   = BitConverter.ToInt32( rec_data_len, 0 );
+
+					// Read the data packet
+					Byte[] proto_rec_data = new Byte[l];
+					bbyytteess			  = tcp_stream.Read( proto_rec_data, 0, proto_rec_data.Length );
+
+					// print the received bytes
+					bool data_in = get_float_array_from_proto( proto_rec_data );
+
+					if( data_in && disconnect ) {
+						Debug.Log( "Server has requested a disconnect." );
+					} else if( !data_in ) {
+						Debug.LogFormat( "Bad packet: {0}", bad_packet_counter );
+						bad_packet_counter++;
+
+						// if( bad_packet_counter > 1000 ) {
+						// 	Debug.Log( "Too many bad packets, disconnecting" );
+						// 	bad_packet_counter = 0;
+						// 	disconnect		   = true;
+						// 	// end_session();
+						// 	// SceneManager.LoadScene( "Menu" );
+						// }
+					}
+				} catch {
+					// Debug.Log( "Server has disconnected" );
+					// end_session();
+					// SceneManager.LoadScene( "Menu" );
+				}
+
+				allocate_devices();
+				log_packet();
+			}
+		}
+	}
+
+	public void back_to_main_menu() {
+		try {
+			end_session();
+			SceneManager.LoadScene( "Menu" );
+		} catch( Exception e ) {
+			Debug.LogException( e, this );
+		}
 	}
 
 	// Update is called once per frame
@@ -493,41 +577,6 @@ public class player : MonoBehaviour {
 		}
 
 		try {
-			int bbyytteess = tcp_stream.Read( rec_data_len, 0, 4 );
-			int l		   = BitConverter.ToInt32( rec_data_len, 0 );
-
-			// Read the data packet
-			Byte[] proto_rec_data = new Byte[l];
-			bbyytteess			  = tcp_stream.Read( proto_rec_data, 0, proto_rec_data.Length );
-
-			// print the received bytes
-			bool data_in = get_float_array_from_proto( proto_rec_data );
-
-			// Debug.LogFormat("Received {0} bytes and packet status is: {1}", bbyytteess, data_in);
-
-			if( data_in && disconnect ) {
-				Debug.Log( "Server has requested a disconnect." );
-				disconnect = true;
-			} else if( !data_in ) {
-				Debug.Log( "Bad packet" );
-				bad_packet_counter += 1;
-
-				if( bad_packet_counter > 50 ) {
-					Debug.Log( "Too many bad packets, disconnecting" );
-					end_session();
-					SceneManager.LoadScene( "Menu" );
-				}
-			}
-		} catch {
-			// Debug.Log( "Server has disconnected" );
-			// end_session();
-			// SceneManager.LoadScene( "Menu" );
-		}
-
-		allocate_devices();
-		log_packet();
-
-		try {
 			bicep.transform.rotation   = Quaternion.Lerp( bicep.transform.rotation, q_bicep, rate );
 			forearm.transform.rotation = Quaternion.Lerp( forearm.transform.rotation, q_forearm, rate );
 			hand.transform.rotation	   = Quaternion.Lerp( hand.transform.rotation, q_hand, rate );
@@ -567,29 +616,6 @@ public class player : MonoBehaviour {
 		if( data_writer != null ) {
 			data_writer.Close();
 			Debug.Log( "Log writer 3 closed" );
-		}
-	}
-
-	public void back_to_main_menu() {
-		try {
-			Debug.Log( "Closing everything..." );
-
-			close_writers();
-
-			if( tcp_stream != null ) {
-				tcp_stream.Close();
-				tcp_stream.Dispose();
-				Debug.Log( "TCP stream closed" );
-			}
-
-			if( tcp_client.Connected ) {
-				tcp_client.Close();
-				Debug.Log( "TCP client closed" );
-			}
-
-			SceneManager.LoadScene( "Menu" );
-		} catch( Exception e ) {
-			Debug.LogException( e, this );
 		}
 	}
 }

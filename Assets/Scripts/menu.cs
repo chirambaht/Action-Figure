@@ -26,7 +26,26 @@ public class menu : MonoBehaviour {
 	}
 
 	public void start_data_collection() {
-		Debug.LogFormat( "Name: {0}\nMass: {1}\nGender: {2}\nHand: {3}", participant_name.text, participant_mass.text, genders[gender_dropdown.value], hands[hand_dropdown.value] );
+		// if participant name is not set, set it to the last name
+		if( participant_name.text == "" ) {
+			participant_name.text = PlayerPrefs.GetString( "name" );
+		}
+
+		// if participant mass is not set, set it to 70
+		if( participant_mass.text == "" ) {
+			participant_mass.text = "70";
+		}
+
+		// if ip is not set, set it to
+		if( ip_input.text == "" ) {
+			ip_input.text = "localhost";
+		}
+
+		// If the timer is not set, set it to 3 seconds
+		if( invoke_timer.text == "" ) {
+			invoke_timer.text = "3";
+		}
+
 		PlayerPrefs.SetString( "hand", hands[hand_dropdown.value] );
 		PlayerPrefs.SetString( "gender", genders[gender_dropdown.value] );
 		PlayerPrefs.SetString( "name", participant_name.text );
@@ -36,11 +55,6 @@ public class menu : MonoBehaviour {
 		Debug.Log( "I will wait for " + invoke_timer.text + " seconds before starting the scene." );
 
 		Invoke( "scene_swap", float.Parse( invoke_timer.text ) );
-		// if( genders[gender_dropdown.value] == "Male" ) {
-		// 	SceneManager.LoadScene( "Action Scene Male" );
-		// } else {
-		// 	SceneManager.LoadScene( "Action Scene Female" );
-		// }
 	}
 
 	void scene_swap() {
