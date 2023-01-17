@@ -332,11 +332,11 @@ public class player : MonoBehaviour {
 	}
 
 	public String parse_debug_stats() {
-		String debug_line = "Received:\n";
-		debug_line += "         " + "  w  " + "  " + "  x  " + "  " + "  y  " + "  " + "  z  " + "\n";
-		debug_line += "  Bicep  " + q_bicep.w.ToString( "0.000" ) + "  " + q_bicep.y.ToString( "0.000" ) + "  " + q_bicep.z.ToString( "0.000" ) + "  " + q_bicep.x.ToString( "0.000" ) + "\n";
-		debug_line += "Forearm  " + q_forearm.w.ToString( "0.000" ) + "  " + q_forearm.y.ToString( "0.000" ) + "  " + q_forearm.z.ToString( "0.000" ) + "  " + q_forearm.x.ToString( "0.000" ) + "\n";
-		debug_line += "   Hand  " + q_hand.w.ToString( "0.000" ) + "  " + q_hand.y.ToString( "0.000" ) + "  " + q_hand.z.ToString( "0.000" ) + "  " + q_hand.x.ToString( "0.000" ) + "\n";
+		String debug_line = "<mspace=0.75em>";
+		debug_line += "      " + "  w  " + "  " + "  x  " + "  " + "  y  " + "  " + "  z  " + "\n";
+		debug_line += "Upper " + q_bicep.w.ToString( "0.000" ) + "  " + q_bicep.y.ToString( "0.000" ) + "  " + q_bicep.z.ToString( "0.000" ) + "  " + q_bicep.x.ToString( "0.000" ) + "\n";
+		debug_line += "Lower " + q_forearm.w.ToString( "0.000" ) + "  " + q_forearm.y.ToString( "0.000" ) + "  " + q_forearm.z.ToString( "0.000" ) + "  " + q_forearm.x.ToString( "0.000" ) + "\n";
+		debug_line += "Hand  " + q_hand.w.ToString( "0.000" ) + "  " + q_hand.y.ToString( "0.000" ) + "  " + q_hand.z.ToString( "0.000" ) + "  " + q_hand.x.ToString( "0.000" ) + "\n";
 
 		return debug_line;
 	}
@@ -484,23 +484,15 @@ public class player : MonoBehaviour {
 					} else if( !data_in ) {
 						Debug.LogFormat( "Bad packet: {0}", bad_packet_counter );
 						bad_packet_counter++;
-
-						// if( bad_packet_counter > 1000 ) {
-						// 	Debug.Log( "Too many bad packets, disconnecting" );
-						// 	bad_packet_counter = 0;
-						// 	disconnect		   = true;
-						// 	// end_session();
-						// 	// SceneManager.LoadScene( "Menu" );
-						// }
+						continue;
 					}
+					allocate_devices();
+					log_packet();
 				} catch {
 					// Debug.Log( "Server has disconnected" );
 					// end_session();
 					// SceneManager.LoadScene( "Menu" );
 				}
-
-				allocate_devices();
-				log_packet();
 			}
 		}
 	}
@@ -587,9 +579,9 @@ public class player : MonoBehaviour {
 		angle_elbow = 180 - Quaternion.Angle( bicep.rotation, forearm.rotation );
 		angle_wrist = 180 - Quaternion.Angle( forearm.rotation, hand.rotation );
 
-		text_stats.text	 = String.Format( "Rotations\nBicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow.ToString( "0.000" ), angle_wrist.ToString( "0.000" ) );
+		text_stats.text	 = String.Format( "<mspace=0.75em>Bicep - Forearm\t{0}\nForearm - Hand\t{1}", angle_elbow.ToString( "0.000" ), angle_wrist.ToString( "0.000" ) );
 		debug_stats.text = parse_debug_stats();
-		text_stats.text += "\n" + ( logging ? "Logging" : "Not logging" );
+		text_stats.text += "\n</mspace>" + ( logging ? "Logging" : "Not logging" );
 	}
 
 	void FixedUpdate() {

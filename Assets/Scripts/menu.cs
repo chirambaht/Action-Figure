@@ -43,7 +43,7 @@ public class menu : MonoBehaviour {
 
 		// If the timer is not set, set it to 3 seconds
 		if( invoke_timer.text == "" ) {
-			invoke_timer.text = "3";
+			invoke_timer.text = "0";
 		}
 
 		PlayerPrefs.SetString( "hand", hands[hand_dropdown.value] );

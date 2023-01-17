@@ -176,10 +176,10 @@ public class cam_controller : MonoBehaviour
     {
         if (working_camera == Camera.main)
         {
-            Camera.main.transform.Rotate(new Vector3(0, 180, 0));
+            Camera.main.transform.Rotate(new Vector3(180, 0, 0));
             Camera.main.transform.position =
-                new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y,
-                            Camera.main.transform.position.z * -1);
+                new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y * -1,
+                            Camera.main.transform.position.z);
         }
     }
 }
