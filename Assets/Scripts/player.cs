@@ -88,12 +88,14 @@ public class player : MonoBehaviour {
 	StreamWriter log_writer;
 	StreamWriter data_writer;
 	StreamWriter sol_writer;
+	StreamWriter frame_writer;
 
 	DateTime log_time;
 
 	string file_name_for_log;
 	string file_name_for_sol;
 	string file_name_for_data;
+	string file_name_for_frame;
 
 	int file_number = 0;
 	// COrrects the quaternions base on the MPU direction
@@ -103,6 +105,7 @@ public class player : MonoBehaviour {
 	const float zoomOutMax		 = 0;
 	bool		logging			 = false;
 	bool		first_data_point = true;
+	bool		first_frame		 = true;
 	public void play_sound() {
 		if( logging ) {
 			return;
@@ -117,90 +120,132 @@ public class player : MonoBehaviour {
 
 		working_camera.transform.position = working_camera.transform.position + new Vector3( 0, 0, increment );
 	}
+	public void log_frame() {
+		if( first_frame ) {
+			file_name_for_frame = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + "_frames.csv";
+			frame_writer		= new( file_name_for_frame, append: true );
+			frame_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
+			first_frame = false;
+		}
+
+		try {
+			TimeSpan t_span = DateTime.Now - log_time;
+
+			string log_string = "";
+
+			// Add the current frame time
+			log_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
+			// Add the rotations
+			log_string += bicep.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += forearm.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += hand.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += finger.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+
+			// Add the positions
+			log_string += bicep.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += forearm.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += hand.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += finger.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture );
+
+			frame_writer.WriteLine( log_string );
+		} catch( Exception e ) {
+			Debug.Log( e );
+		}
+	}
 
 	public void log_packet() {
 		if( !logging ) {
 			return;
-		} else {
-			if( first_data_point ) {
-				try {
-					path = Application.persistentDataPath.ToString();
+		}
 
-					if( path.Length == 0 ) {
-						path = "";
-					}
+		if( first_data_point ) {
+			try {
+				// try {
+				// 	path = Application.persistentDataPath.ToString();
+				// } catch( Exception e ) {
+				// 	Debug.Log( e );
+				// 	path = "";
+				// }
 
-					Debug.LogFormat( "Logging to {2}/{0}_{1}.act", name_choice, log_time.ToString( "yyyyMMdd_HHmmss" ), path );
+				// if( path.Length == 0 ) {
+				// 	path = "";
+				// }
 
-					file_name_for_log = path + "/" + log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".act";
+				path = "";
 
-					file_name_for_sol  = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".csv";
-					file_name_for_data = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + "_packets.csv";
+				file_name_for_log = path + log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".act";
 
-					file_number++;
+				file_name_for_sol  = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + ".csv";
+				file_name_for_data = log_time.ToString( "yyyyMMdd_HHmmss" ) + "_" + name_choice + "_" + file_number.ToString() + "_packets.csv";
 
-					log_writer	= new( file_name_for_log, append: true );
-					sol_writer	= new( file_name_for_sol, append: true );
-					data_writer = new( file_name_for_data, append: true );
+				file_number++;
 
-					log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
-					sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,finger_rot_x,finger_rot_y,finger_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z,finger_pos_x,finger_pos_y,finger_pos_z" );
-					data_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
+				log_writer	= new( file_name_for_log, append: true );
+				sol_writer	= new( file_name_for_sol, append: true );
+				data_writer = new( file_name_for_data, append: true );
 
-				} catch( Exception e ) {
-					Debug.Log( e.Message );
+				log_writer.WriteLine( String.Format( "Name: {0}, Mass: {1}, Hand: {2}, Gender: {3}, IP: {4}", name_choice, mass_choice, hand_choice, gender_choice, ip_choice ) );
+				sol_writer.WriteLine( "time(s),upper_rot_x,upper_rot_y,upper_rot_z,lower_rot_x,lower_rot_y,lower_rot_z,hand_rot_x,hand_rot_y,hand_rot_z,finger_rot_x,finger_rot_y,finger_rot_z,upper_pos_x,upper_pos_y,upper_pos_z,lower_pos_x,lower_pos_y,lower_pos_z,hand_pos_x,hand_pos_y,hand_pos_z,finger_pos_x,finger_pos_y,finger_pos_z" );
+				data_writer.WriteLine( "time(s),packet,id_1,quat_w_1,quat_x_1,quat_y_1,quat_z_1,accel_x_1,accel_y_1,accel_z_1,gyro_x_1,gyro_y_1,gyro_z_1,temp_1,id_2,quat_w_2,quat_x_2,quat_y_2,quat_z_2,accel_x_2,accel_y_2,accel_z_2,gyro_x_2,gyro_y_2,gyro_z_2,temp_2,id_3,quat_w_3,quat_x_3,quat_y_3,quat_z_3,accel_x_3,accel_y_3,accel_z_3,gyro_x_3,gyro_y_3,gyro_z_3,temp_3" );
+
+			} catch( Exception e ) {
+				Debug.Log( e.Message );
+			}
+			first_data_point = false;
+		}
+
+		try {
+			log_writer.WriteLine( received_data_packet.ToString() );
+			TimeSpan t_span = DateTime.Now - log_time;
+
+			string log_string;
+			string data_string = "";
+
+			// Add the current frame time
+			log_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
+			// Add the rotations
+			log_string += bicep.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += forearm.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += hand.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += finger.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+
+			// Add the positions
+			log_string += bicep.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += forearm.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += hand.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+			log_string += finger.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture );
+
+			data_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
+			data_string += received_data_packet.PacketNumber.ToString() + ",";
+
+			for( int i = 0; i < received_data_packet.DeviceData.Count; i++ ) {
+				data_string += received_data_packet.DeviceData[i].DeviceIdentifierContents.ToString() + ",";
+
+				data_string += received_data_packet.DeviceData[i].Quaternion.W.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Quaternion.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Quaternion.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Quaternion.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+
+				data_string += received_data_packet.DeviceData[i].Accelerometer.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Accelerometer.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Accelerometer.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+
+				data_string += received_data_packet.DeviceData[i].Gyroscope.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Gyroscope.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+				data_string += received_data_packet.DeviceData[i].Gyroscope.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
+
+				data_string += received_data_packet.DeviceData[i].Temperature.ToString( "0.00000", CultureInfo.InvariantCulture );
+
+				if( i < received_data_packet.DeviceData.Count - 1 ) {
+					data_string += ",";
 				}
-				first_data_point = false;
 			}
+
+			sol_writer.WriteLine( log_string );
+			data_writer.WriteLine( data_string );
+		} catch( Exception e ) {
+			Debug.Log( e );
 		}
-		log_writer.WriteLine( received_data_packet.ToString() );
-		TimeSpan t_span = DateTime.Now - log_time;
-
-		string log_string;
-		string data_string = "";
-
-		// Add the current frame time
-		log_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
-		// Add the rotations
-		log_string += bicep.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += forearm.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += hand.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += finger.transform.eulerAngles.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.eulerAngles.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-
-		// Add the positions
-		log_string += bicep.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + bicep.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += forearm.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + forearm.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += hand.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + hand.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-		log_string += finger.transform.position.x.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.y.ToString( "0.00000", CultureInfo.InvariantCulture ) + "," + finger.transform.position.z.ToString( "0.00000", CultureInfo.InvariantCulture );
-
-		data_string = ( t_span.TotalMilliseconds / 1000f ).ToString( "0.0000", CultureInfo.InvariantCulture ) + ",";
-		data_string += received_data_packet.PacketNumber.ToString() + ",";
-
-		for( int i = 0; i < received_data_packet.DeviceData.Count; i++ ) {
-			data_string += received_data_packet.DeviceData[i].DeviceIdentifierContents.ToString() + ",";
-
-			data_string += received_data_packet.DeviceData[i].Quaternion.W.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Quaternion.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Quaternion.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Quaternion.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-
-			data_string += received_data_packet.DeviceData[i].Accelerometer.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Accelerometer.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Accelerometer.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-
-			data_string += received_data_packet.DeviceData[i].Gyroscope.X.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Gyroscope.Y.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-			data_string += received_data_packet.DeviceData[i].Gyroscope.Z.ToString( "0.00000", CultureInfo.InvariantCulture ) + ",";
-
-			data_string += received_data_packet.DeviceData[i].Temperature.ToString( "0.00000", CultureInfo.InvariantCulture );
-
-			if( i < received_data_packet.DeviceData.Count - 1 ) {
-				data_string += ",";
-			}
-		}
-
-		sol_writer.WriteLine( log_string );
-		data_writer.WriteLine( data_string );
 	}
 
 	public bool get_float_array_from_proto( Byte[] byte_array ) {
@@ -363,6 +408,11 @@ public class player : MonoBehaviour {
 				Debug.Log( "Log writer 3 closed" );
 			}
 
+			if( frame_writer != null ) {
+				frame_writer.Close();
+				Debug.Log( "Log writer 3 closed" );
+			}
+
 			close_tcp();
 
 			if( network_thread.IsAlive ) {
@@ -482,7 +532,6 @@ public class player : MonoBehaviour {
 					if( data_in && disconnect ) {
 						Debug.Log( "Server has requested a disconnect." );
 					} else if( !data_in ) {
-						Debug.LogFormat( "Bad packet: {0}", bad_packet_counter );
 						bad_packet_counter++;
 						continue;
 					}
@@ -569,9 +618,20 @@ public class player : MonoBehaviour {
 		}
 
 		try {
-			bicep.transform.rotation   = Quaternion.Lerp( bicep.transform.rotation, q_bicep, rate );
-			forearm.transform.rotation = Quaternion.Lerp( forearm.transform.rotation, q_forearm, rate );
-			hand.transform.rotation	   = Quaternion.Lerp( hand.transform.rotation, q_hand, rate );
+			// bicep.transform.rotation   = Quaternion.LerpUnclamped( bicep.transform.rotation, q_bicep, rate );
+			// forearm.transform.rotation = Quaternion.LerpUnclamped( forearm.transform.rotation, q_forearm, rate );
+			// hand.transform.rotation	   = Quaternion.LerpUnclamped( hand.transform.rotation, q_hand, rate );
+
+			// bicep.transform.rotation   = Quaternion.RotateTowards( bicep.transform.rotation, q_bicep, rate );
+			// forearm.transform.rotation = Quaternion.RotateTowards( forearm.transform.rotation, q_forearm, rate );
+			// hand.transform.rotation	   = Quaternion.RotateTowards( hand.transform.rotation, q_hand, rate );
+
+			bicep.transform.rotation   = q_bicep;
+			forearm.transform.rotation = q_forearm;
+			hand.transform.rotation	   = q_hand;
+
+			log_frame();
+
 		} catch( Exception err ) {
 			err.ToString();
 		}
@@ -607,6 +667,11 @@ public class player : MonoBehaviour {
 
 		if( data_writer != null ) {
 			data_writer.Close();
+			Debug.Log( "Log writer 3 closed" );
+		}
+
+		if( frame_writer != null ) {
+			frame_writer.Close();
 			Debug.Log( "Log writer 3 closed" );
 		}
 	}
